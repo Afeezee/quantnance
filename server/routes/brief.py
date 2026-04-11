@@ -77,7 +77,6 @@ async def analyze(
     overview_data = None
     price_history_data = None
     news_articles = None
-    bayse_events_raw = None
 
     try:
         results = await asyncio.gather(
@@ -85,7 +84,6 @@ async def analyze(
             stocks.get_company_overview(symbol),
             stocks.get_price_history(symbol),
             news.get_financial_news(f"{match_name} stock"),
-            bayse.get_events(keyword=symbol),
             return_exceptions=True,
         )
 
@@ -93,11 +91,11 @@ async def analyze(
         overview_data = results[1] if not isinstance(results[1], Exception) else None
         price_history_data = results[2] if not isinstance(results[2], Exception) else None
         news_articles = results[3] if not isinstance(results[3], Exception) else None
-        bayse_events_raw = results[4] if not isinstance(results[4], Exception) else None
     except Exception:
         pass
 
     company_name = (overview_data or {}).get("name", "") or match_name
+    sector = (overview_data or {}).get("sector", "")
 
     volatility = 0.0
     if price_history_data:
@@ -106,13 +104,12 @@ async def analyze(
         except Exception:
             pass
 
+    # Smart Bayse search: uses symbol, company name, and sector
     bayse_events_list = []
-    if isinstance(bayse_events_raw, dict):
-        bayse_events_list = bayse_events_raw.get("events", bayse_events_raw.get("data", []))
-        if not isinstance(bayse_events_list, list):
-            bayse_events_list = []
-    elif isinstance(bayse_events_raw, list):
-        bayse_events_list = bayse_events_raw
+    try:
+        bayse_events_list = await bayse.get_smart_events(symbol, company_name, sector)
+    except Exception as exc:
+        log.warning("Bayse smart search failed for %s: %s", symbol, exc)
 
     bayse_sentiment = bayse.extract_crowd_sentiment(bayse_events_list)
 
@@ -183,7 +180,6 @@ async def get_brief(
     overview_data = None
     price_history_data = None
     news_articles = None
-    bayse_events_raw = None
 
     try:
         results = await asyncio.gather(
@@ -191,7 +187,6 @@ async def get_brief(
             stocks.get_company_overview(symbol),
             stocks.get_price_history(symbol),
             news.get_financial_news(f"{symbol} stock"),
-            bayse.get_events(keyword=symbol),
             return_exceptions=True,
         )
 
@@ -199,11 +194,11 @@ async def get_brief(
         overview_data = results[1] if not isinstance(results[1], Exception) else None
         price_history_data = results[2] if not isinstance(results[2], Exception) else None
         news_articles = results[3] if not isinstance(results[3], Exception) else None
-        bayse_events_raw = results[4] if not isinstance(results[4], Exception) else None
     except Exception:
         pass
 
     company_name = (overview_data or {}).get("name", symbol)
+    sector = (overview_data or {}).get("sector", "")
 
     volatility = 0.0
     if price_history_data:
@@ -212,13 +207,12 @@ async def get_brief(
         except Exception:
             pass
 
+    # Smart Bayse search: uses symbol, company name, and sector
     bayse_events_list = []
-    if isinstance(bayse_events_raw, dict):
-        bayse_events_list = bayse_events_raw.get("events", bayse_events_raw.get("data", []))
-        if not isinstance(bayse_events_list, list):
-            bayse_events_list = []
-    elif isinstance(bayse_events_raw, list):
-        bayse_events_list = bayse_events_raw
+    try:
+        bayse_events_list = await bayse.get_smart_events(symbol, company_name, sector)
+    except Exception as exc:
+        log.warning("Bayse smart search failed for %s: %s", symbol, exc)
 
     bayse_sentiment = bayse.extract_crowd_sentiment(bayse_events_list)
 

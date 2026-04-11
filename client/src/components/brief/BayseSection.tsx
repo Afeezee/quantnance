@@ -45,7 +45,7 @@ export default function BayseSection({ bayse, brief }: BayseSectionProps) {
                 {bayse.category && (
                   <span
                     style={{
-                      background: 'rgba(139,92,246,0.15)',
+                      background: 'var(--glow-blue)',
                       color: 'var(--accent-violet)',
                       padding: '2px 8px',
                       borderRadius: 8,
@@ -66,22 +66,68 @@ export default function BayseSection({ bayse, brief }: BayseSectionProps) {
             noPercent={bayse.outcome2_price || 50}
             confidence={bayse.crowd_confidence || 'Low'}
           />
+
+          {bayse.event_slug && (
+            <a
+              href={`https://bayse.markets/events/${bayse.event_slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'block',
+                marginTop: 12,
+                padding: '8px 0',
+                textAlign: 'center',
+                borderRadius: 8,
+                background: 'linear-gradient(135deg, var(--accent-violet), var(--accent-blue))',
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 600,
+                textDecoration: 'none',
+                transition: 'opacity 0.2s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+            >
+              Vote on Bayse ↗
+            </a>
+          )}
         </>
       ) : (
         <div
           style={{
-            padding: 24,
+            padding: 28,
             textAlign: 'center',
-            color: 'var(--text-muted)',
-            fontSize: 13,
             background: 'rgba(255,255,255,0.02)',
             borderRadius: 12,
             marginBottom: 16,
           }}
         >
-          No active Bayse prediction markets found for this asset.
-          <br />
-          Crowd sentiment data unavailable.
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 16 }}>
+            No active prediction market found for this asset.
+          </p>
+          <a
+            href="https://bayse.markets/create"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-block',
+              padding: '10px 24px',
+              borderRadius: 10,
+              background: 'linear-gradient(135deg, var(--accent-violet), var(--accent-blue))',
+              color: '#fff',
+              fontSize: 14,
+              fontWeight: 600,
+              textDecoration: 'none',
+              transition: 'opacity 0.2s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+          >
+            Create a market on Bayse ↗
+          </a>
+          <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 10 }}>
+            Be the first to get crowd wisdom on this stock
+          </p>
         </div>
       )}
 

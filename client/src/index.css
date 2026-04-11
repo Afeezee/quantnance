@@ -1,22 +1,92 @@
 @import "tailwindcss";
 
-:root {
-  --bg-primary: #0a0f1e;
-  --bg-secondary: #0d1628;
+/* ─── Dark Theme (default) ───────────────────── */
+
+:root,
+[data-theme="dark"] {
+  --bg-primary: #0b0f19;
+  --bg-secondary: #111827;
+  --bg-tertiary: #1f2937;
   --card-bg: rgba(255, 255, 255, 0.04);
-  --card-border: rgba(255, 255, 255, 0.08);
-  --accent-blue: #3b82f6;
-  --accent-violet: #8b5cf6;
+  --card-bg-solid: #151c2c;
+  --card-border: rgba(255, 255, 255, 0.07);
+  --card-hover-border: rgba(56, 189, 248, 0.35);
+  --card-hover-glow: rgba(56, 189, 248, 0.08);
+  --accent-blue: #38bdf8;
+  --accent-teal: #2dd4bf;
+  --accent-violet: #38bdf8;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --glow-blue: rgba(56, 189, 248, 0.12);
+  --glow-teal: rgba(45, 212, 191, 0.10);
+  --glow-violet: rgba(56, 189, 248, 0.12);
+  --nav-bg: rgba(11, 15, 25, 0.85);
+  --nav-border: rgba(255, 255, 255, 0.06);
+  --input-bg: rgba(255, 255, 255, 0.05);
+  --input-border: rgba(255, 255, 255, 0.10);
+  --input-focus-border: rgba(56, 189, 248, 0.5);
+  --chip-bg: rgba(255, 255, 255, 0.05);
+  --chip-border: rgba(255, 255, 255, 0.08);
+  --chip-hover-bg: rgba(56, 189, 248, 0.12);
+  --chip-hover-border: rgba(56, 189, 248, 0.3);
+  --scrollbar-track: #0b0f19;
+  --scrollbar-thumb: #38bdf8;
+  --scrollbar-thumb-hover: #7dd3fc;
+  --orb-1: rgba(56, 189, 248, 0.08);
+  --orb-2: rgba(45, 212, 191, 0.06);
+  --grid-line: rgba(255, 255, 255, 0.02);
+  --ripple-color: rgba(255, 255, 255, 0.25);
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'Inter', sans-serif;
+  color-scheme: dark;
+}
+
+/* ─── Light Theme ────────────────────────────── */
+
+[data-theme="light"] {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-tertiary: #e2e8f0;
+  --card-bg: rgba(255, 255, 255, 0.65);
+  --card-bg-solid: #ffffff;
+  --card-border: rgba(0, 0, 0, 0.08);
+  --card-hover-border: rgba(14, 165, 233, 0.4);
+  --card-hover-glow: rgba(14, 165, 233, 0.08);
+  --accent-blue: #0ea5e9;
+  --accent-teal: #14b8a6;
+  --accent-violet: #0ea5e9;
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #475569;
-  --glow-blue: rgba(59, 130, 246, 0.15);
-  --glow-violet: rgba(139, 92, 246, 0.15);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --glow-blue: rgba(14, 165, 233, 0.10);
+  --glow-teal: rgba(20, 184, 166, 0.08);
+  --glow-violet: rgba(14, 165, 233, 0.10);
+  --nav-bg: rgba(248, 250, 252, 0.85);
+  --nav-border: rgba(0, 0, 0, 0.06);
+  --input-bg: rgba(255, 255, 255, 0.7);
+  --input-border: rgba(0, 0, 0, 0.10);
+  --input-focus-border: rgba(14, 165, 233, 0.5);
+  --chip-bg: rgba(0, 0, 0, 0.03);
+  --chip-border: rgba(0, 0, 0, 0.08);
+  --chip-hover-bg: rgba(14, 165, 233, 0.08);
+  --chip-hover-border: rgba(14, 165, 233, 0.3);
+  --scrollbar-track: #f8fafc;
+  --scrollbar-thumb: #0ea5e9;
+  --scrollbar-thumb-hover: #38bdf8;
+  --orb-1: rgba(14, 165, 233, 0.06);
+  --orb-2: rgba(20, 184, 166, 0.04);
+  --grid-line: rgba(0, 0, 0, 0.03);
+  --ripple-color: rgba(0, 0, 0, 0.12);
   --font-mono: 'JetBrains Mono', monospace;
   --font-sans: 'Inter', sans-serif;
+  color-scheme: light;
 }
 
 *,
@@ -40,6 +110,7 @@ body {
   line-height: 1.7;
   overflow-x: hidden;
   min-height: 100vh;
+  transition: background 0.4s ease, color 0.4s ease;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -122,12 +193,12 @@ h1, h2, h3, h4, h5, h6 {
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--card-border);
   border-radius: 16px;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, background 0.4s ease;
 }
 
 .glass-card:hover {
-  border-color: rgba(59, 130, 246, 0.4);
-  box-shadow: 0 0 30px rgba(59, 130, 246, 0.1);
+  border-color: var(--card-hover-border);
+  box-shadow: 0 0 30px var(--card-hover-glow);
   transform: translateY(-2px);
 }
 
@@ -168,14 +239,14 @@ h1, h2, h3, h4, h5, h6 {
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg-primary);
+  background: var(--scrollbar-track);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--accent-blue);
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #60a5fa;
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* ─── Utility ────────────────────────────────── */
@@ -185,7 +256,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, var(--accent-blue), var(--accent-violet));
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-teal));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -215,7 +286,7 @@ h1, h2, h3, h4, h5, h6 {
 .btn-ripple .ripple-effect {
   position: absolute;
   border-radius: 50%;
-  background: rgba(255,255,255,0.3);
+  background: var(--ripple-color);
   animation: ripple 0.6s ease-out forwards;
   pointer-events: none;
 }
@@ -231,3 +302,81 @@ h1, h2, h3, h4, h5, h6 {
 .marquee-track:hover {
   animation-play-state: paused;
 }
+
+/* ─── Search Chips ───────────────────────────── */
+
+.search-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-border);
+  border-radius: 100px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.search-chip:hover {
+  background: var(--chip-hover-bg);
+  border-color: var(--chip-hover-border);
+  color: var(--accent-blue);
+  transform: translateY(-1px);
+}
+
+/* ─── History Panel ──────────────────────────── */
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.history-item:hover {
+  background: var(--chip-hover-bg);
+  color: var(--text-primary);
+}
+
+/* ─── Theme Toggle ───────────────────────────── */
+
+.theme-toggle {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+  border-color: var(--card-hover-border);
+  color: var(--accent-blue);
+  background: var(--chip-hover-bg);
+}
+
+/* ─── Staggered Entrance ─────────────────────── */
+
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
+.stagger-5 { animation-delay: 250ms; }
+.stagger-6 { animation-delay: 300ms; }
+.stagger-7 { animation-delay: 350ms; }
+.stagger-8 { animation-delay: 400ms; }

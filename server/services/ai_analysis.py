@@ -1,4 +1,5 @@
 ﻿import os
+import re
 import json
 import logging
 import asyncio
@@ -52,58 +53,160 @@ def _call_groq(prompt: str, system: str = None, max_tokens: int = 2000,
     """
     Core Groq call wrapper using direct HTTP (bypasses SDK Pydantic V1 issue
     on Python 3.14). Returns the response text string.
-    Never raises to the caller — returns empty string on failure.
+    Retries on 429 rate-limit errors. Returns empty string on failure.
     """
-    try:
-        messages = []
-        if system:
-            messages.append({"role": "system", "content": system})
-        messages.append({"role": "user", "content": prompt})
+    import time
 
-        logger.info("Groq call: max_tokens=%d, temp=%.1f, prompt_len=%d",
-                     max_tokens, temperature, len(prompt))
+    messages = []
+    if system:
+        messages.append({"role": "system", "content": system})
+    messages.append({"role": "user", "content": prompt})
 
-        resp = httpx.post(
-            GROQ_API_URL,
-            headers={
-                "Authorization": f"Bearer {_get_api_key()}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": MODEL,
-                "messages": messages,
-                "max_tokens": max_tokens,
-                "temperature": temperature,
-            },
-            timeout=60,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        content = data["choices"][0]["message"]["content"]
-        logger.info("Groq response: %d chars, finish_reason=%s",
-                     len(content), data["choices"][0].get("finish_reason", "?"))
-        return content
-    except Exception as e:
-        logger.error(f"Groq API call failed: {e}")
-        return ""
+    logger.info("Groq call: max_tokens=%d, temp=%.1f, prompt_len=%d",
+                 max_tokens, temperature, len(prompt))
+
+    for attempt in range(3):
+        try:
+            resp = httpx.post(
+                GROQ_API_URL,
+                headers={
+                    "Authorization": f"Bearer {_get_api_key()}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": MODEL,
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                },
+                timeout=60,
+            )
+            if resp.status_code == 429:
+                raw_retry = resp.headers.get("retry-after", "")
+                try:
+                    retry_secs = float(raw_retry)
+                except (ValueError, TypeError):
+                    retry_secs = 2 ** (attempt + 1)
+                # If retry-after is more than 60s, this is a daily limit — don't wait
+                if retry_secs > 60:
+                    logger.warning("Groq daily rate limit hit (retry-after=%ss). Skipping retries.", raw_retry)
+                    return ""
+                wait = min(retry_secs, 10)
+                logger.warning("Groq 429 rate-limited (retry-after=%s), waiting %.1fs (attempt %d/3)",
+                               raw_retry, wait, attempt + 1)
+                time.sleep(wait)
+                continue
+            resp.raise_for_status()
+            data = resp.json()
+            content = data["choices"][0]["message"]["content"]
+            logger.info("Groq response: %d chars, finish_reason=%s",
+                         len(content), data["choices"][0].get("finish_reason", "?"))
+            return content
+        except Exception as e:
+            logger.error("Groq API call failed (attempt %d/3): %s", attempt + 1, e)
+            if attempt < 2:
+                time.sleep(2 ** (attempt + 1))
+                continue
+            return ""
+    return ""
 
 
 def _parse_json_response(raw: str, fallback: dict) -> dict:
     """
     Safely parse a JSON string from the model response.
-    Strips markdown code fences if present.
-    Returns fallback dict if parsing fails.
+    Handles code fences, trailing text, and truncated responses.
+    Uses json.JSONDecoder.raw_decode for robust extraction.
     """
     try:
         cleaned = raw.strip()
-        if cleaned.startswith("```"):
-            lines = cleaned.split("\n")
-            cleaned = "\n".join(lines[1:-1])
-        return json.loads(cleaned)
-    except (json.JSONDecodeError, Exception) as e:
-        logger.warning(f"Failed to parse JSON response: {e}")
-        logger.debug(f"Raw response was: {raw[:500]}")
+        # Strip markdown code fences
+        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
+        cleaned = re.sub(r"\s*```\s*$", "", cleaned)
+        cleaned = cleaned.strip()
+
+        # Try direct parse first (fastest path)
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            pass
+
+        # Use raw_decode — it properly handles braces inside strings
+        # and stops at the end of the first complete JSON value
+        start = cleaned.find("{")
+        if start == -1:
+            raise ValueError("No JSON object found")
+
+        decoder = json.JSONDecoder()
+        try:
+            obj, _ = decoder.raw_decode(cleaned, start)
+            return obj
+        except json.JSONDecodeError:
+            pass
+
+        # Try from first { to last }
+        last = cleaned.rfind("}")
+        if last > start:
+            try:
+                return json.loads(cleaned[start:last + 1])
+            except json.JSONDecodeError:
+                pass
+
+        # Attempt to repair truncated JSON by closing open structures
+        fragment = cleaned[start:]
+        repaired = _repair_truncated_json(fragment)
+        if repaired:
+            return json.loads(repaired)
+
+        raise ValueError("Could not parse or repair JSON")
+    except Exception as e:
+        logger.warning("Failed to parse JSON response: %s", e)
+        logger.debug("Raw response was: %s", raw[:500])
         return fallback
+
+
+def _repair_truncated_json(s: str) -> str | None:
+    """
+    Attempt to repair truncated JSON by closing open strings, arrays, and objects.
+    Returns the repaired string or None if repair isn't possible.
+    """
+    try:
+        # If we're inside an unterminated string, close it
+        in_string = False
+        escaped = False
+        stack = []  # track [ and {
+        for ch in s:
+            if escaped:
+                escaped = False
+                continue
+            if ch == '\\' and in_string:
+                escaped = True
+                continue
+            if ch == '"':
+                in_string = not in_string
+                continue
+            if in_string:
+                continue
+            if ch in ('{', '['):
+                stack.append(ch)
+            elif ch == '}' and stack and stack[-1] == '{':
+                stack.pop()
+            elif ch == ']' and stack and stack[-1] == '[':
+                stack.pop()
+
+        suffix = ""
+        if in_string:
+            suffix += '"'
+        # Close any open arrays/objects in reverse order
+        for bracket in reversed(stack):
+            suffix += ']' if bracket == '[' else '}'
+
+        if suffix:
+            repaired = s + suffix
+            json.loads(repaired)  # validate
+            return repaired
+        return None
+    except Exception:
+        return None
 
 
 async def analyse_news_sentiment(symbol: str, company_name: str,
@@ -379,7 +482,28 @@ async def generate_comparison(stocks_data: list[dict], user_prompt: str) -> dict
         "Never make buy/sell/hold recommendations. "
         "Base analysis EXCLUSIVELY on the data provided."
     )
-    stocks_formatted = json.dumps(stocks_data, indent=2, default=str)
+
+    # Build a compact data summary — only essential comparison fields
+    compact = []
+    for s in stocks_data:
+        q = s.get("quote") or {}
+        o = s.get("overview") or {}
+        compact.append({
+            "symbol": s.get("symbol", "?"),
+            "name": o.get("name", ""),
+            "price": q.get("price"),
+            "change": q.get("change"),
+            "change_percent": q.get("change_percent"),
+            "market_cap": o.get("market_cap"),
+            "pe_ratio": o.get("pe_ratio"),
+            "eps": o.get("eps"),
+            "beta": o.get("beta"),
+            "52w_high": o.get("52_week_high"),
+            "52w_low": o.get("52_week_low"),
+            "dividend_yield": o.get("dividend_yield"),
+            "sector": o.get("sector"),
+        })
+    stocks_formatted = json.dumps(compact, default=str)
     symbols = [s.get("symbol", "?") for s in stocks_data]
 
     user_msg = f"""Compare these stocks based on the market data below: {', '.join(symbols)}
@@ -406,13 +530,19 @@ Return ONLY valid JSON with this structure:
     "{symbols[0]}": ["<weakness1>"],
     "{symbols[1] if len(symbols) > 1 else 'B'}": ["<weakness1>"]
   }},
-  "verdict": "<5-6 sentence plain-language verdict. Which suits what investor profile. No buy/sell recs.>"
+  "verdict": "<2-3 sentence verdict. Which suits what investor profile. No buy/sell recs.>"
 }}"""
 
-    raw = await asyncio.to_thread(_call_groq, user_msg, system_prompt, 2000, 0.4)
+    raw = await asyncio.to_thread(_call_groq, user_msg, system_prompt, 1500, 0.4)
     fallback = {"summary": "Comparison unavailable.", "verdict": "Please try again.",
                 "metrics_comparison": {}, "strengths": {}, "weaknesses": {}}
-    return _parse_json_response(raw, fallback) if raw else fallback
+    if not raw:
+        logger.warning("Comparison: Groq returned empty response")
+        return fallback
+    result = _parse_json_response(raw, fallback)
+    logger.info("Comparison parsed — summary=%d chars, verdict=%d chars",
+                len(result.get("summary", "")), len(result.get("verdict", "")))
+    return result
 
 
 async def generate_recommendations(user_prompt: str) -> dict:

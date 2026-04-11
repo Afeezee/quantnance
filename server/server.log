@@ -1,0 +1,137 @@
+2026-04-11 20:04:33,082 INFO quantnance: Quantnance API ready
+2026-04-11 20:04:33,083 INFO quantnance: ✅ BAYSE_PUBLIC_KEY loaded (pk_l****)
+2026-04-11 20:04:33,083 INFO quantnance: ✅ GROQ_API_KEY loaded (gsk_****)
+2026-04-11 20:04:33,085 INFO quantnance: ✅ NEWS_API_KEY loaded (77b0****)
+2026-04-11 20:04:33,087 INFO quantnance: ✅ All API keys loaded successfully
+2026-04-11 20:05:12,993 INFO services.ai_analysis: Groq call: max_tokens=120, temp=0.0, prompt_len=21
+2026-04-11 20:05:14,851 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-11 20:05:14,865 INFO services.ai_analysis: Groq response: 50 chars, finish_reason=stop
+2026-04-11 20:05:16,722 INFO httpx: HTTP Request: GET https://query1.finance.yahoo.com/v1/finance/search?q=MSFT&quotesCount=10&newsCount=0&listsCount=0&enableFuzzyQuery=true "HTTP/1.1 200 OK"
+2026-04-11 20:05:16,754 INFO services.stocks: YF search [MSFT] -> status 200
+2026-04-11 20:05:18,288 INFO services.stocks: Overview cache HIT for MSFT
+2026-04-11 20:05:19,669 INFO services.stocks: Overview cache HIT for AAPL
+2026-04-11 20:05:20,158 INFO httpx: HTTP Request: GET https://query1.finance.yahoo.com/v8/finance/chart/AAPL?interval=1d&range=1d "HTTP/1.1 200 OK"
+2026-04-11 20:05:20,385 INFO httpx: HTTP Request: GET https://query1.finance.yahoo.com/v8/finance/chart/MSFT?interval=1d&range=1d "HTTP/1.1 200 OK"
+2026-04-11 20:05:20,393 INFO services.ai_analysis: Groq call: max_tokens=1500, temp=0.4, prompt_len=1336
+2026-04-11 20:05:24,124 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-11 20:05:24,129 INFO services.ai_analysis: Groq response: 1703 chars, finish_reason=stop
+2026-04-11 20:05:24,132 INFO services.ai_analysis: Comparison parsed — summary=301 chars, verdict=305 chars
+2026-04-11 20:05:38,184 INFO services.ai_analysis: Groq call: max_tokens=120, temp=0.0, prompt_len=4
+2026-04-11 20:05:40,643 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-11 20:05:40,646 INFO services.ai_analysis: Groq response: 42 chars, finish_reason=stop
+2026-04-11 20:05:40,676 INFO services.stocks: Overview cache HIT for AAPL
+2026-04-11 20:05:42,841 INFO httpx: HTTP Request: GET https://newsapi.org/v2/everything?q=Apple+Inc.+stock&language=en&sortBy=publishedAt&pageSize=8&apiKey=77b0ae0438aa43a1b52630d89ddef4be "HTTP/1.1 200 OK"
+2026-04-11 20:05:44,445 INFO httpx: HTTP Request: GET https://relay.bayse.markets/v1/pm/events?keyword=AAPL&status=open&limit=10 "HTTP/1.1 200 OK"
+2026-04-11 20:05:46,093 INFO httpx: HTTP Request: GET https://relay.bayse.markets/v1/pm/events?keyword=Apple&status=open&limit=10 "HTTP/1.1 200 OK"
+2026-04-11 20:05:46,339 INFO services.bayse: Bayse: company name match for 'Apple' (8 events)
+2026-04-11 20:05:46,340 INFO services.ai_analysis: Groq call: max_tokens=800, temp=0.3, prompt_len=1225
+2026-04-11 20:05:49,363 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-11 20:05:49,372 INFO services.ai_analysis: Groq response: 735 chars, finish_reason=stop
+2026-04-11 20:05:49,374 INFO services.ai_analysis: Groq call: max_tokens=2500, temp=0.4, prompt_len=5200
+2026-04-11 20:05:54,850 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-11 20:05:54,868 INFO services.ai_analysis: Groq response: 4869 chars, finish_reason=stop
+2026-04-11 20:05:54,874 INFO routes.brief: Brief generated for AAPL
+2026-04-11 20:37:54,736 INFO services.ai_analysis: Groq call: max_tokens=120, temp=0.0, prompt_len=24
+2026-04-11 20:37:57,265 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-11 20:37:57,853 INFO services.ai_analysis: Groq response: 54 chars, finish_reason=stop
+2026-04-11 20:38:01,098 INFO httpx: HTTP Request: GET https://query1.finance.yahoo.com/v1/finance/search?q=Amazon&quotesCount=10&newsCount=0&listsCount=0&enableFuzzyQuery=true "HTTP/1.1 200 OK"
+2026-04-11 20:38:01,124 INFO services.stocks: YF search [Amazon] -> status 200
+2026-04-11 20:38:04,425 INFO httpx: HTTP Request: GET https://query1.finance.yahoo.com/v1/finance/search?q=Google&quotesCount=10&newsCount=0&listsCount=0&enableFuzzyQuery=true "HTTP/1.1 200 OK"
+2026-04-11 20:38:04,725 INFO services.stocks: YF search [Google] -> status 200
+2026-04-11 20:38:05,810 INFO services.stocks: Overview cache MISS for AMZN — fetching
+2026-04-11 20:38:07,735 INFO services.stocks: Overview cache MISS for GOOG — fetching
+2026-04-11 20:38:09,232 INFO httpx: HTTP Request: GET https://query1.finance.yahoo.com/v8/finance/chart/GOOG?interval=1d&range=1d "HTTP/1.1 200 OK"
+2026-04-11 20:38:09,442 INFO httpx: HTTP Request: GET https://query1.finance.yahoo.com/v8/finance/chart/GOOG?interval=1d&range=5d "HTTP/1.1 200 OK"
+2026-04-11 20:38:09,551 INFO httpx: HTTP Request: GET https://query1.finance.yahoo.com/v8/finance/chart/AMZN?interval=1d&range=1d "HTTP/1.1 200 OK"
+2026-04-11 20:38:10,004 INFO httpx: HTTP Request: GET https://query1.finance.yahoo.com/v8/finance/chart/AMZN?interval=1d&range=5d "HTTP/1.1 200 OK"
+2026-04-11 20:38:13,104 INFO httpx: HTTP Request: GET https://finance.yahoo.com/quote/AMZN/ "HTTP/1.1 200 OK"
+2026-04-11 20:38:13,467 INFO httpx: HTTP Request: GET https://finance.yahoo.com/quote/GOOG/ "HTTP/1.1 200 OK"
+2026-04-11 20:38:22,505 INFO httpx: HTTP Request: GET https://query2.finance.yahoo.com/v1/test/getcrumb "HTTP/1.1 200 OK"
+2026-04-11 20:38:22,787 INFO httpx: HTTP Request: GET https://query2.finance.yahoo.com/v10/finance/quoteSummary/AMZN?modules=assetProfile%2CdefaultKeyStatistics%2CsummaryDetail%2Cprice%2CfinancialData&crumb=FK4JU4G5DgT "HTTP/1.1 200 OK"
+2026-04-11 20:38:22,793 INFO services.stocks: YF quoteSummary: 200 for AMZN
+2026-04-11 20:38:22,796 INFO services.stocks: YF overview enriched with quoteSummary for AMZN
+2026-04-11 20:38:26,681 INFO httpx: HTTP Request: GET https://query2.finance.yahoo.com/v1/test/getcrumb "HTTP/1.1 200 OK"
+2026-04-11 20:38:26,955 INFO httpx: HTTP Request: GET https://query2.finance.yahoo.com/v10/finance/quoteSummary/GOOG?modules=assetProfile%2CdefaultKeyStatistics%2CsummaryDetail%2Cprice%2CfinancialData&crumb=Onifj3HFsC4 "HTTP/1.1 200 OK"
+2026-04-11 20:38:26,956 INFO services.stocks: YF quoteSummary: 200 for GOOG
+2026-04-11 20:38:26,958 INFO services.stocks: YF overview enriched with quoteSummary for GOOG
+2026-04-11 20:38:26,963 INFO services.ai_analysis: Groq call: max_tokens=1500, temp=0.4, prompt_len=1348
+2026-04-11 20:38:29,979 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-11 20:38:29,983 INFO services.ai_analysis: Groq response: 1847 chars, finish_reason=stop
+2026-04-11 20:38:29,984 INFO services.ai_analysis: Comparison parsed — summary=373 chars, verdict=350 chars
+2026-04-11 20:38:42,838 INFO services.ai_analysis: Groq call: max_tokens=120, temp=0.0, prompt_len=4
+2026-04-11 20:38:45,771 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-11 20:38:45,772 INFO services.ai_analysis: Groq response: 42 chars, finish_reason=stop
+2026-04-11 20:38:47,394 INFO httpx: HTTP Request: GET https://query1.finance.yahoo.com/v1/finance/search?q=GOOG&quotesCount=10&newsCount=0&listsCount=0&enableFuzzyQuery=true "HTTP/1.1 200 OK"
+2026-04-11 20:38:47,403 INFO services.stocks: YF search [GOOG] -> status 200
+2026-04-11 20:38:47,407 INFO services.stocks: Overview cache HIT for GOOG
+2026-04-11 20:38:50,401 INFO httpx: HTTP Request: GET https://query1.finance.yahoo.com/v8/finance/chart/GOOG?interval=1d&range=6mo "HTTP/1.1 200 OK"
+2026-04-11 20:38:50,592 INFO httpx: HTTP Request: GET https://newsapi.org/v2/everything?q=Alphabet+Inc.+stock&language=en&sortBy=publishedAt&pageSize=8&apiKey=77b0ae0438aa43a1b52630d89ddef4be "HTTP/1.1 200 OK"
+2026-04-11 20:38:54,157 INFO httpx: HTTP Request: GET https://relay.bayse.markets/v1/pm/events?keyword=GOOG&status=open&limit=10 "HTTP/1.1 200 OK"
+2026-04-11 20:38:54,314 INFO services.bayse: Bayse: exact symbol match for GOOG (2 events)
+2026-04-11 20:38:54,315 INFO services.ai_analysis: Groq call: max_tokens=800, temp=0.3, prompt_len=1318
+2026-04-11 20:38:56,485 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-11 20:38:56,493 INFO services.ai_analysis: Groq response: 702 chars, finish_reason=stop
+2026-04-11 20:38:56,495 INFO services.ai_analysis: Groq call: max_tokens=2500, temp=0.4, prompt_len=4612
+2026-04-11 20:39:02,260 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-11 20:39:02,270 INFO services.ai_analysis: Groq response: 4930 chars, finish_reason=stop
+2026-04-11 20:39:02,282 INFO routes.brief: Brief generated for GOOG
+2026-04-11 20:39:32,467 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 413 Payload Too Large"
+2026-04-11 20:39:32,502 ERROR services.ai_analysis: Groq chat call failed: Client error '413 Payload Too Large' for url 'https://api.groq.com/openai/v1/chat/completions'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/413
+2026-04-11 20:45:36,168 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-11 20:50:58,926 INFO services.ai_analysis: Groq call: max_tokens=120, temp=0.0, prompt_len=33
+2026-04-11 20:51:01,621 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-11 20:51:01,636 INFO services.ai_analysis: Groq response: 38 chars, finish_reason=stop
+2026-04-11 20:51:01,673 INFO services.ai_analysis: Groq call: max_tokens=1200, temp=0.5, prompt_len=622
+2026-04-11 20:51:06,004 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-11 20:51:06,006 INFO services.ai_analysis: Groq response: 2269 chars, finish_reason=stop
+2026-04-11 20:51:19,221 INFO services.ai_analysis: Groq call: max_tokens=120, temp=0.0, prompt_len=3
+2026-04-11 20:51:23,114 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-11 20:51:23,143 INFO services.ai_analysis: Groq response: 41 chars, finish_reason=stop
+2026-04-11 20:51:25,775 INFO httpx: HTTP Request: GET https://query1.finance.yahoo.com/v1/finance/search?q=TTD&quotesCount=10&newsCount=0&listsCount=0&enableFuzzyQuery=true "HTTP/1.1 200 OK"
+2026-04-11 20:51:25,787 INFO services.stocks: YF search [TTD] -> status 200
+2026-04-11 20:51:27,242 INFO services.stocks: Overview cache MISS for TTD — fetching
+2026-04-11 20:51:32,259 INFO httpx: HTTP Request: GET https://query1.finance.yahoo.com/v8/finance/chart/TTD?interval=1d&range=1d "HTTP/1.1 200 OK"
+2026-04-11 20:51:32,296 INFO httpx: HTTP Request: GET https://query1.finance.yahoo.com/v8/finance/chart/TTD?interval=1d&range=5d "HTTP/1.1 200 OK"
+2026-04-11 20:51:32,421 INFO httpx: HTTP Request: GET https://query1.finance.yahoo.com/v8/finance/chart/TTD?interval=1d&range=6mo "HTTP/1.1 200 OK"
+2026-04-11 20:51:33,153 INFO httpx: HTTP Request: GET https://newsapi.org/v2/everything?q=The+Trade+Desk%2C+Inc.+stock&language=en&sortBy=publishedAt&pageSize=8&apiKey=77b0ae0438aa43a1b52630d89ddef4be "HTTP/1.1 200 OK"
+2026-04-11 20:51:35,654 INFO httpx: HTTP Request: GET https://finance.yahoo.com/quote/TTD/ "HTTP/1.1 200 OK"
+2026-04-11 20:51:41,075 INFO httpx: HTTP Request: GET https://query2.finance.yahoo.com/v1/test/getcrumb "HTTP/1.1 200 OK"
+2026-04-11 20:51:41,339 INFO httpx: HTTP Request: GET https://query2.finance.yahoo.com/v10/finance/quoteSummary/TTD?modules=assetProfile%2CdefaultKeyStatistics%2CsummaryDetail%2Cprice%2CfinancialData&crumb=akXcPLs4vUK "HTTP/1.1 200 OK"
+2026-04-11 20:51:41,343 INFO services.stocks: YF quoteSummary: 200 for TTD
+2026-04-11 20:51:41,345 INFO services.stocks: YF overview enriched with quoteSummary for TTD
+2026-04-11 20:51:43,712 INFO httpx: HTTP Request: GET https://relay.bayse.markets/v1/pm/events?keyword=TTD&status=open&limit=10 "HTTP/1.1 200 OK"
+2026-04-11 20:51:45,475 INFO httpx: HTTP Request: GET https://relay.bayse.markets/v1/pm/events?keyword=The+Trade+Desk&status=open&limit=10 "HTTP/1.1 200 OK"
+2026-04-11 20:51:47,553 INFO httpx: HTTP Request: GET https://relay.bayse.markets/v1/pm/events?keyword=media&status=open&limit=10 "HTTP/1.1 200 OK"
+2026-04-11 20:51:49,546 INFO services.bayse: Bayse: sector keyword match for 'Communication Services' via 'media' (9 events)
+2026-04-11 20:51:49,550 INFO services.ai_analysis: Groq call: max_tokens=800, temp=0.3, prompt_len=1222
+2026-04-11 20:51:52,841 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-11 20:51:52,846 INFO services.ai_analysis: Groq response: 759 chars, finish_reason=stop
+2026-04-11 20:51:52,849 INFO services.ai_analysis: Groq call: max_tokens=2500, temp=0.4, prompt_len=4045
+2026-04-11 20:51:57,942 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-11 20:51:57,944 INFO services.ai_analysis: Groq response: 4723 chars, finish_reason=stop
+2026-04-11 20:51:57,945 INFO routes.brief: Brief generated for TTD
+2026-04-11 20:58:32,074 INFO services.ai_analysis: Groq call: max_tokens=120, temp=0.0, prompt_len=25
+2026-04-11 20:58:36,703 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-11 20:58:36,706 INFO services.ai_analysis: Groq response: 44 chars, finish_reason=stop
+2026-04-11 20:58:36,739 INFO services.ai_analysis: Groq call: max_tokens=30, temp=0.0, prompt_len=25
+2026-04-11 20:58:39,203 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-11 20:58:39,216 INFO services.ai_analysis: Groq response: 4 chars, finish_reason=stop
+2026-04-11 20:58:42,233 INFO httpx: HTTP Request: GET https://query1.finance.yahoo.com/v1/finance/search?q=NVDA&quotesCount=10&newsCount=0&listsCount=0&enableFuzzyQuery=true "HTTP/1.1 200 OK"
+2026-04-11 20:58:42,235 INFO services.stocks: YF search [NVDA] -> status 200
+2026-04-11 20:58:43,553 INFO services.stocks: Overview cache HIT for NVDA
+2026-04-11 20:58:48,091 INFO httpx: HTTP Request: GET https://query1.finance.yahoo.com/v8/finance/chart/NVDA?interval=1d&range=1d "HTTP/1.1 200 OK"
+2026-04-11 20:58:48,107 INFO httpx: HTTP Request: GET https://query1.finance.yahoo.com/v8/finance/chart/NVDA?interval=1d&range=6mo "HTTP/1.1 200 OK"
+2026-04-11 20:58:48,362 INFO httpx: HTTP Request: GET https://newsapi.org/v2/everything?q=NVIDIA+Corporation+stock&language=en&sortBy=publishedAt&pageSize=8&apiKey=77b0ae0438aa43a1b52630d89ddef4be "HTTP/1.1 200 OK"
+2026-04-11 20:58:51,680 INFO httpx: HTTP Request: GET https://relay.bayse.markets/v1/pm/events?keyword=NVDA&status=open&limit=10 "HTTP/1.1 200 OK"
+2026-04-11 20:58:54,395 INFO httpx: HTTP Request: GET https://relay.bayse.markets/v1/pm/events?keyword=NVIDIA&status=open&limit=10 "HTTP/1.1 200 OK"
+2026-04-11 20:58:56,224 INFO httpx: HTTP Request: GET https://relay.bayse.markets/v1/pm/events?keyword=technology&status=open&limit=10 "HTTP/1.1 200 OK"
+2026-04-11 20:58:58,308 INFO httpx: HTTP Request: GET https://relay.bayse.markets/v1/pm/events?keyword=tech&status=open&limit=10 "HTTP/1.1 200 OK"
+2026-04-11 20:58:58,813 INFO services.bayse: Bayse: sector keyword match for 'Technology' via 'tech' (1 events)
+2026-04-11 20:58:58,814 INFO services.ai_analysis: Groq call: max_tokens=800, temp=0.3, prompt_len=1538
+2026-04-11 20:59:03,330 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-11 20:59:03,410 INFO services.ai_analysis: Groq response: 683 chars, finish_reason=stop
+2026-04-11 20:59:03,556 INFO services.ai_analysis: Groq call: max_tokens=2500, temp=0.4, prompt_len=5032
+2026-04-11 20:59:09,823 INFO httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-11 20:59:09,825 INFO services.ai_analysis: Groq response: 4749 chars, finish_reason=stop
+2026-04-11 20:59:09,829 INFO routes.brief: Brief generated for NVDA

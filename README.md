@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Quantnance Project
 
 ## Overview
@@ -40,3 +41,7 @@ Contributions are welcome! Please open an issue or submit a pull request for any
 
 ## License
 This project is licensed under the MIT License. See the LICENSE file for details.
+=======
+# quantnance
+A quantitative finance AI app
+>>>>>>> 1edeb59f5d675337415fc8366f61830adcaf2581

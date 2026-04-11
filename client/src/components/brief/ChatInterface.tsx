@@ -31,6 +31,23 @@ export default function ChatInterface({ symbol, briefContext }: ChatInterfacePro
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
+  // Build a compact context to avoid 413 Payload Too Large from Groq
+  const compactContext = (() => {
+    if (!briefContext) return {};
+    const b = briefContext as Record<string, unknown>;
+    const ctx: Record<string, unknown> = {};
+    if (b.symbol) ctx.symbol = b.symbol;
+    if (b.exchange) ctx.exchange = b.exchange;
+    if (b.quote) ctx.quote = b.quote;
+    if (b.company_overview) ctx.company_overview = b.company_overview;
+    if (b.volatility) ctx.volatility = b.volatility;
+    if (b.brief) ctx.brief = b.brief;
+    if (b.sentiment) ctx.sentiment = b.sentiment;
+    if (b.bayse_sentiment) ctx.bayse_sentiment = b.bayse_sentiment;
+    // Omit price_history and full news array — too large
+    return ctx;
+  })();
+
   const send = async (text: string) => {
     if (!text.trim() || loading) return;
 
@@ -42,7 +59,7 @@ export default function ChatInterface({ symbol, briefContext }: ChatInterfacePro
     try {
       const { data } = await axios.post(`${API_URL}/api/chat`, {
         symbol,
-        brief_context: briefContext || {},
+        brief_context: compactContext,
         conversation_history: messages.map((m) => ({
           role: m.role,
           content: m.content,

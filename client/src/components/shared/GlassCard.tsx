@@ -55,7 +55,7 @@ export default function GlassCard({
                 width: 24,
                 height: 24,
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-violet))',
+                background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-teal))',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

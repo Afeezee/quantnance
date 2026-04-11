@@ -1,4 +1,6 @@
 import { useBayseSocket } from '../../hooks/useBayseSocket';
+import { useTheme } from '../../hooks/useTheme';
+import { Sun, Moon, Menu } from 'lucide-react';
 
 const TICKER_ITEMS = [
   { symbol: 'BTC/USDT', key: 'BTCUSDT' },
@@ -7,8 +9,13 @@ const TICKER_ITEMS = [
   { symbol: 'USD/NGN', key: 'USDNGN' },
 ];
 
-export default function Navbar() {
+interface NavbarProps {
+  onToggleSidebar?: () => void;
+}
+
+export default function Navbar({ onToggleSidebar }: NavbarProps) {
   const { prices, connected } = useBayseSocket();
+  const { theme, toggleTheme } = useTheme();
 
   const renderTickerItem = (item: (typeof TICKER_ITEMS)[number], idx: number) => {
     const data = prices[item.key];
@@ -27,7 +34,7 @@ export default function Navbar() {
           whiteSpace: 'nowrap',
         }}
       >
-        <span style={{ color: '#f1f5f9', fontSize: 13, fontWeight: 500 }}>
+        <span style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 500 }}>
           {item.symbol}
         </span>
         <span
@@ -54,20 +61,34 @@ export default function Navbar() {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 24px',
-        background: 'rgba(10,15,30,0.8)',
+        background: 'var(--nav-bg)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        borderBottom: '1px solid var(--nav-border)',
+        transition: 'background 0.4s ease, border-color 0.4s ease',
       }}
     >
-      {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+      {/* Logo — clickable to toggle sidebar */}
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, cursor: 'pointer' }}
+        onClick={onToggleSidebar}
+        title="Toggle search history"
+      >
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--text-secondary)',
+          width: 28,
+        }}>
+          <Menu size={18} />
+        </div>
         <div
           style={{
             width: 32,
             height: 32,
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-violet))',
+            background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-teal))',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -78,7 +99,7 @@ export default function Navbar() {
         >
           Q
         </div>
-        <span style={{ fontWeight: 700, fontSize: 18, color: '#f1f5f9' }}>
+        <span style={{ fontWeight: 700, fontSize: 18, color: 'var(--text-primary)' }}>
           Quantnance
         </span>
         <span
@@ -123,6 +144,16 @@ export default function Navbar() {
           {TICKER_ITEMS.map((item, i) => renderTickerItem(item, i + TICKER_ITEMS.length))}
         </div>
       </div>
+
+      {/* Theme Toggle */}
+      <button
+        className="theme-toggle"
+        onClick={toggleTheme}
+        title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        aria-label="Toggle theme"
+      >
+        {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+      </button>
     </nav>
   );
 }

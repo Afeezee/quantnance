@@ -7,6 +7,7 @@ export default function Background() {
         zIndex: -1,
         overflow: 'hidden',
         pointerEvents: 'none',
+        transition: 'background 0.4s ease',
       }}
     >
       {/* Grid overlay */}
@@ -15,11 +16,11 @@ export default function Background() {
           position: 'absolute',
           inset: 0,
           backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)',
+            'linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px)',
           backgroundSize: '50px 50px',
         }}
       />
-      {/* Blue orb */}
+      {/* Primary orb */}
       <div
         style={{
           position: 'absolute',
@@ -28,12 +29,12 @@ export default function Background() {
           width: 600,
           height: 600,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)',
+          background: `radial-gradient(circle, var(--orb-1) 0%, transparent 70%)`,
           animation: 'float 20s ease-in-out infinite',
           willChange: 'transform',
         }}
       />
-      {/* Violet orb */}
+      {/* Secondary orb */}
       <div
         style={{
           position: 'absolute',
@@ -42,7 +43,7 @@ export default function Background() {
           width: 500,
           height: 500,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(139,92,246,0.10) 0%, transparent 70%)',
+          background: `radial-gradient(circle, var(--orb-2) 0%, transparent 70%)`,
           animation: 'float 25s ease-in-out infinite 5s',
           willChange: 'transform',
         }}

@@ -1,0 +1,8 @@
+STATUS: 200
+SUMMARY: Comparison unavailable.
+VERDICT: Please try again.
+METRICS: []
+MSFT strengths: []
+MSFT weaknesses: []
+AAPL strengths: []
+AAPL weaknesses: []

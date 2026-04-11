@@ -32,7 +32,7 @@ export default function ExchangeSelector({ value, onChange }: ExchangeSelectorPr
       }}
     >
       {EXCHANGES.map((ex) => (
-        <option key={ex.value} value={ex.value} style={{ background: '#0d1628' }}>
+        <option key={ex.value} value={ex.value} style={{ background: 'var(--bg-secondary)' }}>
           {ex.label}
         </option>
       ))}

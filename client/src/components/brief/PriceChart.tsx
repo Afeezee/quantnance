@@ -92,7 +92,7 @@ export default function PriceChart({ data }: PriceChartProps) {
         <Bar
           yAxisId="volume"
           dataKey="volume"
-          fill="rgba(139,92,246,0.25)"
+          fill="var(--glow-blue)"
           isAnimationActive={true}
           animationDuration={1500}
         />
