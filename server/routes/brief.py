@@ -281,3 +281,70 @@ async def chat(req: ChatRequest):
         return {"response": response}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
+
+
+@router.get("/classify")
+async def classify(prompt: str = Query(..., min_length=1)):
+    """Classify a prompt as analyze/compare/recommend and resolve symbols."""
+    result = await ai_analysis.classify_prompt(prompt)
+    if result["intent"] == "compare" and result.get("symbols"):
+        resolved = []
+        for sym in result["symbols"][:4]:
+            matches = await stocks.search_ticker(sym)
+            if matches:
+                resolved.append(matches[0]["symbol"])
+        result["symbols"] = resolved
+    return result
+
+
+@router.get("/compare")
+async def compare(
+    prompt: str = Query(..., min_length=1),
+    symbols: str = Query(..., min_length=1),
+):
+    """Compare 2+ stocks side-by-side with AI analysis."""
+    symbol_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
+    if len(symbol_list) < 2:
+        raise HTTPException(400, "At least 2 symbols required for comparison")
+    if len(symbol_list) > 4:
+        symbol_list = symbol_list[:4]
+
+    async def _fetch_stock(sym: str):
+        results = await asyncio.gather(
+            stocks.get_quote(sym),
+            stocks.get_company_overview(sym),
+            return_exceptions=True,
+        )
+        return {
+            "symbol": sym,
+            "quote": results[0] if not isinstance(results[0], Exception) else None,
+            "overview": results[1] if not isinstance(results[1], Exception) else None,
+        }
+
+    stocks_data = list(await asyncio.gather(*[_fetch_stock(s) for s in symbol_list]))
+    stocks_data = [s for s in stocks_data if s["quote"] is not None]
+
+    if len(stocks_data) < 2:
+        raise HTTPException(404, "Could not fetch data for enough symbols to compare")
+
+    comparison = await ai_analysis.generate_comparison(stocks_data, prompt)
+
+    return {
+        "type": "compare",
+        "prompt": prompt,
+        "stocks": stocks_data,
+        "comparison": comparison,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@router.get("/recommend")
+async def recommend(prompt: str = Query(..., min_length=1)):
+    """AI-powered stock recommendations based on user query."""
+    result = await ai_analysis.generate_recommendations(prompt)
+    return {
+        "type": "recommend",
+        "prompt": prompt,
+        "recommendations": result,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }

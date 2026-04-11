@@ -343,3 +343,107 @@ async def answer_question(symbol: str, brief_context: dict,
     except Exception as e:
         logger.error(f"Groq chat call failed: {e}")
         return "I'm sorry, I encountered an error processing your question. Please try again."
+
+
+async def classify_prompt(user_prompt: str) -> dict:
+    """Classify whether a prompt is analyze, compare, or recommend."""
+    system = (
+        "You classify investment queries. Respond with ONLY valid JSON.\n"
+        "Return exactly: {\"intent\": \"<type>\", \"symbols\": [\"<sym1>\", ...]}\n"
+        "intent must be one of:\n"
+        "- \"analyze\" — user asks about ONE stock (e.g. 'How is AAPL doing?')\n"
+        "- \"compare\" — user wants to compare TWO or more stocks "
+        "(e.g. 'NVDA vs AMD', 'Compare Apple and Microsoft')\n"
+        "- \"recommend\" — user asks for stock suggestions/ideas "
+        "(e.g. 'Suggest dividend stocks', 'What Nigerian stocks should I buy?')\n"
+        "symbols: extract ticker symbols or company names mentioned. "
+        "For recommend intent, symbols can be empty [].\n"
+        "Rules: no explanation, no markdown. JSON only."
+    )
+    raw = await asyncio.to_thread(_call_groq, user_prompt, system, 120, 0.0)
+    fallback = {"intent": "analyze", "symbols": []}
+    if not raw:
+        return fallback
+    result = _parse_json_response(raw, fallback)
+    if result.get("intent") not in ("analyze", "compare", "recommend"):
+        result["intent"] = "analyze"
+    return result
+
+
+async def generate_comparison(stocks_data: list[dict], user_prompt: str) -> dict:
+    """Generate a side-by-side AI comparison of 2+ stocks."""
+    system_prompt = (
+        "You are Quantnance AI, a senior investment research analyst. "
+        "You write clear, data-driven stock comparisons. "
+        "Respond with ONLY valid JSON — no markdown, no code fences. "
+        "Never make buy/sell/hold recommendations. "
+        "Base analysis EXCLUSIVELY on the data provided."
+    )
+    stocks_formatted = json.dumps(stocks_data, indent=2, default=str)
+    symbols = [s.get("symbol", "?") for s in stocks_data]
+
+    user_msg = f"""Compare these stocks based on the market data below: {', '.join(symbols)}
+
+The user asked: "{user_prompt}"
+
+STOCK DATA:
+{stocks_formatted}
+
+Return ONLY valid JSON with this structure:
+{{
+  "summary": "<3-4 sentence overview comparing the stocks>",
+  "metrics_comparison": {{
+    "price_action": "<compare recent price performance>",
+    "valuation": "<compare P/E, market cap, EPS>",
+    "risk_profile": "<compare beta, volatility, 52-week ranges>",
+    "fundamentals": "<compare revenue growth, profit margins>"
+  }},
+  "strengths": {{
+    "{symbols[0]}": ["<strength1>", "<strength2>"],
+    "{symbols[1] if len(symbols) > 1 else 'B'}": ["<strength1>", "<strength2>"]
+  }},
+  "weaknesses": {{
+    "{symbols[0]}": ["<weakness1>"],
+    "{symbols[1] if len(symbols) > 1 else 'B'}": ["<weakness1>"]
+  }},
+  "verdict": "<5-6 sentence plain-language verdict. Which suits what investor profile. No buy/sell recs.>"
+}}"""
+
+    raw = await asyncio.to_thread(_call_groq, user_msg, system_prompt, 2000, 0.4)
+    fallback = {"summary": "Comparison unavailable.", "verdict": "Please try again.",
+                "metrics_comparison": {}, "strengths": {}, "weaknesses": {}}
+    return _parse_json_response(raw, fallback) if raw else fallback
+
+
+async def generate_recommendations(user_prompt: str) -> dict:
+    """AI stock suggestions based on user preferences."""
+    system_prompt = (
+        "You are Quantnance AI. Suggest stocks for RESEARCH only — never financial advice. "
+        "Respond with ONLY valid JSON — no markdown, no code fences. "
+        "Suggest real, currently traded stocks with valid ticker symbols."
+    )
+    user_msg = f"""The user asked: "{user_prompt}"
+
+Suggest 4-6 stocks that match what the user is looking for.
+Return ONLY valid JSON with this structure:
+{{
+  "theme": "<short label for the recommendation theme, e.g. 'High-Growth Tech' or 'Nigerian Banks'>",
+  "reasoning": "<2-3 sentences on why these were selected>",
+  "stocks": [
+    {{
+      "symbol": "<TICKER>",
+      "name": "<Company Name>",
+      "rationale": "<1 sentence why this stock fits the query>"
+    }}
+  ],
+  "disclaimer": "These are AI-generated starting points for research, not financial advice. Always do your own due diligence before investing."
+}}"""
+
+    raw = await asyncio.to_thread(_call_groq, user_msg, system_prompt, 1200, 0.5)
+    fallback = {
+        "theme": "Suggestions",
+        "reasoning": "Unable to generate recommendations at this time.",
+        "stocks": [],
+        "disclaimer": "These are AI-generated starting points for research, not financial advice.",
+    }
+    return _parse_json_response(raw, fallback) if raw else fallback
