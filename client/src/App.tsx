@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useMemo } from 'react';
+import { SignedIn, useUser, useClerk } from '@clerk/clerk-react';
 import Background from './components/layout/Background';
 import Navbar from './components/layout/Navbar';
 import SearchBar from './components/search/SearchBar';
@@ -274,6 +275,8 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { brief, comparison, recommendations, mode, loading, error, analyze } = useBrief();
   const { history, addEntry, clearHistory } = useSearchHistory();
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
 
   const hasResult = (brief != null || comparison != null || recommendations != null) && !loading;
 
@@ -292,6 +295,10 @@ export default function App() {
   }, [hasResult]);
 
   const handlePrompt = (prompt: string) => {
+    if (!isSignedIn) {
+      openSignIn();
+      return;
+    }
     setPendingPrompt(prompt);
     analyze(prompt);
   };
@@ -300,13 +307,15 @@ export default function App() {
     <>
       <Background />
       <Navbar onToggleSidebar={() => setSidebarOpen((s) => !s)} />
-      <HistorySidebar
-        open={sidebarOpen}
-        history={history}
-        onSelect={handlePrompt}
-        onClear={clearHistory}
-        onClose={() => setSidebarOpen(false)}
-      />
+      <SignedIn>
+        <HistorySidebar
+          open={sidebarOpen}
+          history={history}
+          onSelect={handlePrompt}
+          onClear={clearHistory}
+          onClose={() => setSidebarOpen(false)}
+        />
+      </SignedIn>
       <main className="container">
         {!hasResult && !loading && !error && (
           <>

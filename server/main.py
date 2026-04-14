@@ -16,7 +16,10 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler(Path(__file__).resolve().parent / "server.log", mode="w", encoding="utf-8"),
+        # On Cloud Run (K_SERVICE is set), stdout is captured by Cloud Logging —
+        # no need to write a file. Write the file only during local development.
+        *([logging.FileHandler(Path(__file__).resolve().parent / "server.log", mode="w", encoding="utf-8")]
+          if not os.getenv("K_SERVICE") else []),
     ],
 )
 logger = logging.getLogger("quantnance")
@@ -35,6 +38,8 @@ app.add_middleware(
         "http://localhost:5175",
         "http://localhost:5176",
         "http://localhost:3000",
+        # Production frontend — set FRONTEND_URL env var on the Cloud Run service
+        *([os.getenv("FRONTEND_URL")] if os.getenv("FRONTEND_URL") else []),
     ],
     allow_credentials=True,
     allow_methods=["*"],

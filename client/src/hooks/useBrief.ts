@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 /* ─── Types ──────────────────────────────────── */
 
@@ -173,6 +174,7 @@ export type AppMode = 'idle' | 'analyze' | 'compare' | 'recommend';
 /* ─── Hook ───────────────────────────────────── */
 
 export function useBrief() {
+  const { getToken } = useAuth();
   const [brief, setBrief] = useState<BriefData | null>(null);
   const [comparison, setComparison] = useState<ComparisonResult | null>(null);
   const [recommendations, setRecommendations] = useState<RecommendationResult | null>(null);
@@ -192,15 +194,23 @@ export function useBrief() {
     setError(null);
     reset();
     try {
+      // Fresh token for classify (short call)
+      const token1 = await getToken();
+      const headers1 = token1 ? { Authorization: `Bearer ${token1}` } : {};
+
       // 1. Classify intent
       const { data: cls } = await axios.get<{ intent: string; symbols: string[] }>(
-        `${API_URL}/api/classify`, { params: { prompt }, timeout: 30000 },
+        `${API_URL}/api/classify`, { params: { prompt }, headers: headers1, timeout: 60000 },
       );
+
+      // Fresh token for the main (slow) call — classify may have taken seconds
+      const token2 = await getToken();
+      const headers2 = token2 ? { Authorization: `Bearer ${token2}` } : {};
 
       if (cls.intent === 'recommend') {
         setMode('recommend');
         const { data } = await axios.get<RecommendationResult>(
-          `${API_URL}/api/recommend`, { params: { prompt }, timeout: 60000 },
+          `${API_URL}/api/recommend`, { params: { prompt }, headers: headers2, timeout: 120000 },
         );
         setRecommendations(data);
       } else if (cls.intent === 'compare' && cls.symbols?.length >= 2) {
@@ -208,6 +218,7 @@ export function useBrief() {
         const { data } = await axios.get<ComparisonResult>(
           `${API_URL}/api/compare`, {
             params: { prompt, symbols: cls.symbols.join(',') },
+            headers: headers2,
             timeout: 120000,
           },
         );
@@ -215,7 +226,7 @@ export function useBrief() {
       } else {
         setMode('analyze');
         const { data } = await axios.get<BriefData>(
-          `${API_URL}/api/analyze`, { params: { prompt }, timeout: 120000 },
+          `${API_URL}/api/analyze`, { params: { prompt }, headers: headers2, timeout: 120000 },
         );
         setBrief(data);
       }
@@ -228,7 +239,7 @@ export function useBrief() {
     } finally {
       setLoading(false);
     }
-  }, [reset]);
+  }, [reset, getToken]);
 
   return { brief, comparison, recommendations, mode, loading, error, analyze };
 }

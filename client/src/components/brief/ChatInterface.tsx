@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, type FormEvent } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import axios from 'axios';
 import GlassCard from '../shared/GlassCard';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -22,6 +23,7 @@ const STARTERS = [
 ];
 
 export default function ChatInterface({ symbol, briefContext }: ChatInterfaceProps) {
+  const { getToken } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -57,6 +59,8 @@ export default function ChatInterface({ symbol, briefContext }: ChatInterfacePro
     setLoading(true);
 
     try {
+      const token = await getToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const { data } = await axios.post(`${API_URL}/api/chat`, {
         symbol,
         brief_context: compactContext,
@@ -65,7 +69,7 @@ export default function ChatInterface({ symbol, briefContext }: ChatInterfacePro
           content: m.content,
         })),
         user_message: text.trim(),
-      });
+      }, { headers, timeout: 60000 });
       setMessages((prev) => [...prev, { role: 'assistant', content: data.response }]);
     } catch {
       setMessages((prev) => [

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 export interface SearchResult {
   symbol: string;
@@ -26,7 +26,7 @@ export function useSearch() {
     try {
       const { data } = await axios.get<SearchResult[]>(`${API_URL}/api/search`, {
         params: { q: trimmed },
-        timeout: 10000,
+        timeout: 30000,
       });
       setResults(data);
       return data;

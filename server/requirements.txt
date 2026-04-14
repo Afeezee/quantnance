@@ -4,3 +4,5 @@ httpx==0.28.0
 python-dotenv==1.0.1
 groq
 pydantic==2.10.3
+PyJWT>=2.8.0
+cryptography>=42.0.0

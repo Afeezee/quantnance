@@ -22,6 +22,27 @@ const FALLBACK_PRICES: Record<string, PriceData> = {
   ETHUSDT: { price: 3450.0, change: 0, timestamp: Date.now() },
   SOLUSDT: { price: 178.5, change: 0, timestamp: Date.now() },
   USDNGN: { price: 1550.0, change: 0, timestamp: Date.now() },
+  EURNGN: { price: 1700.0, change: 0, timestamp: Date.now() },
+  GBPNGN: { price: 1950.0, change: 0, timestamp: Date.now() },
+  CADNGN: { price: 1100.0, change: 0, timestamp: Date.now() },
+  CHFNGN: { price: 1700.0, change: 0, timestamp: Date.now() },
+  CNYNGN: { price: 210.0, change: 0, timestamp: Date.now() },
+  JPYNGN: { price: 10.0, change: 0, timestamp: Date.now() },
+  AEDNGN: { price: 420.0, change: 0, timestamp: Date.now() },
+  ZARNGN: { price: 82.0, change: 0, timestamp: Date.now() },
+};
+
+// CoinGecko rate keys for each FX pair (all vs NGN)
+const FX_PAIRS: Record<string, string> = {
+  USDNGN: 'usd',
+  EURNGN: 'eur',
+  GBPNGN: 'gbp',
+  CADNGN: 'cad',
+  CHFNGN: 'chf',
+  CNYNGN: 'cny',
+  JPYNGN: 'jpy',
+  AEDNGN: 'aed',
+  ZARNGN: 'zar',
 };
 
 const POLL_INTERVAL = 60_000; // 60 seconds
@@ -53,20 +74,29 @@ export function useBayseSocket(): BayseSocketReturn {
         }
       }
 
-      // Fetch USD/NGN from a separate endpoint
+      // Fetch FX rates from CoinGecko (all rates are per 1 BTC, so divide to get X/NGN)
       try {
         const fxResp = await fetch(
           'https://api.coingecko.com/api/v3/exchange_rates'
         );
         if (fxResp.ok) {
           const fxData = await fxResp.json();
-          const ngnRate = fxData?.rates?.ngn?.value;
-          if (ngnRate) {
-            updated.USDNGN = { price: ngnRate, change: 0, timestamp: Date.now() };
+          const ngnPerBtc = fxData?.rates?.ngn?.value;
+          if (ngnPerBtc) {
+            for (const [pairKey, geckoKey] of Object.entries(FX_PAIRS)) {
+              const basePerBtc = fxData?.rates?.[geckoKey]?.value;
+              if (basePerBtc && basePerBtc > 0) {
+                updated[pairKey] = {
+                  price: ngnPerBtc / basePerBtc,
+                  change: 0,
+                  timestamp: Date.now(),
+                };
+              }
+            }
           }
         }
       } catch {
-        // keep fallback for USD/NGN
+        // keep fallback FX rates
       }
 
       setPrices(updated);

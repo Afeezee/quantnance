@@ -1,0 +1,22 @@
+# Node modules — always reinstalled inside the image
+node_modules/
+
+# Previous build output — image builds fresh
+dist/
+
+# Local secrets — never bake into image
+.env
+.env.*
+
+# Version control
+.git
+.gitignore
+
+# Editor / OS noise
+.DS_Store
+*.swp
+*.swo
+
+# Docs and tests
+README.md
+*.md

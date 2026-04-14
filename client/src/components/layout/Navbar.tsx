@@ -1,5 +1,6 @@
 import { useBayseSocket } from '../../hooks/useBayseSocket';
 import { useTheme } from '../../hooks/useTheme';
+import { useUser, UserButton, SignInButton, SignUpButton } from '@clerk/clerk-react';
 import { Sun, Moon, Menu } from 'lucide-react';
 
 const TICKER_ITEMS = [
@@ -16,6 +17,7 @@ interface NavbarProps {
 export default function Navbar({ onToggleSidebar }: NavbarProps) {
   const { prices, connected } = useBayseSocket();
   const { theme, toggleTheme } = useTheme();
+  const { isSignedIn } = useUser();
 
   const renderTickerItem = (item: (typeof TICKER_ITEMS)[number], idx: number) => {
     const data = prices[item.key];
@@ -68,21 +70,29 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
         transition: 'background 0.4s ease, border-color 0.4s ease',
       }}
     >
-      {/* Logo — clickable to toggle sidebar */}
-      <div
-        style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, cursor: 'pointer' }}
-        onClick={onToggleSidebar}
-        title="Toggle search history"
-      >
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--text-secondary)',
-          width: 28,
-        }}>
+      {/* Left section */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        {/* Hamburger — toggles sidebar */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--text-secondary)',
+            width: 28,
+            cursor: 'pointer',
+          }}
+          onClick={onToggleSidebar}
+          title="Toggle search history"
+        >
           <Menu size={18} />
         </div>
+        {/* Logo + title — navigates home */}
+        <a
+          href="/"
+          onClick={(e) => { e.preventDefault(); window.location.href = '/'; }}
+          style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', cursor: 'pointer' }}
+        >
         <div
           style={{
             width: 32,
@@ -112,6 +122,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
         >
           AI
         </span>
+        </a>
       </div>
 
       {/* Ticker marquee */}
@@ -154,6 +165,60 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
       >
         {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
       </button>
+
+      {/* Auth */}
+      {isSignedIn ? (
+        <div style={{ marginLeft: 8 }}>
+          <UserButton afterSignOutUrl="#" />
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 8 }}>
+          <SignInButton mode="modal">
+            <button
+              style={{
+                background: 'none',
+                border: '1px solid var(--card-border)',
+                borderRadius: 8,
+                color: 'var(--text-primary)',
+                cursor: 'pointer',
+                padding: '6px 14px',
+                fontSize: 13,
+                fontWeight: 500,
+                transition: 'border-color 0.2s, color 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent-blue)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent-blue)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)';
+              }}
+            >
+              Sign in
+            </button>
+          </SignInButton>
+          <SignUpButton mode="modal">
+            <button
+              style={{
+                background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-teal))',
+                border: 'none',
+                borderRadius: 8,
+                color: '#fff',
+                cursor: 'pointer',
+                padding: '6px 14px',
+                fontSize: 13,
+                fontWeight: 600,
+                transition: 'opacity 0.2s',
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.85'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '1'; }}
+            >
+              Sign up
+            </button>
+          </SignUpButton>
+        </div>
+      )}
     </nav>
   );
 }

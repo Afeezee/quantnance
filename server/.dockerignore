@@ -1,0 +1,29 @@
+# Python virtual environment — never copy into image
+venv/
+.venv/
+
+# Bytecode caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local secrets — never bake into image
+.env
+.env.*
+
+# Dev / test artefacts
+server.log
+health.txt
+cache/
+test_*.py
+debug_*.txt
+
+# Version control
+.git
+.gitignore
+
+# Editor / OS noise
+.DS_Store
+*.swp
+*.swo

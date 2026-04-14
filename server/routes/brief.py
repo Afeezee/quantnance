@@ -2,9 +2,10 @@ import asyncio
 import time
 import logging
 from datetime import datetime, timezone
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 from pydantic import BaseModel
 from services import stocks, news, bayse, ai_analysis
+from auth import get_current_user
 
 router = APIRouter()
 log = logging.getLogger(__name__)
@@ -33,7 +34,7 @@ class ChatRequest(BaseModel):
 
 
 @router.get("/search")
-async def search(q: str = Query(..., min_length=1)):
+async def search(q: str = Query(..., min_length=1), _user: dict = Depends(get_current_user)):
     try:
         results = await stocks.search_ticker(q)
         return results
@@ -45,6 +46,7 @@ async def search(q: str = Query(..., min_length=1)):
 async def analyze(
     prompt: str = Query(..., min_length=1),
     refresh: bool = Query(default=False),
+    _user: dict = Depends(get_current_user),
 ):
     """
     Accept a natural-language investment prompt, resolve it to a stock symbol
@@ -170,6 +172,7 @@ async def get_brief(
     symbol: str = Query(..., min_length=1),
     exchange: str = Query(default=""),
     refresh: bool = Query(default=False),
+    _user: dict = Depends(get_current_user),
 ):
     # Serve from cache unless refresh=true
     if not refresh:
@@ -264,7 +267,7 @@ async def get_brief(
 
 
 @router.post("/chat")
-async def chat(req: ChatRequest):
+async def chat(req: ChatRequest, _user: dict = Depends(get_current_user)):
     try:
         response = await ai_analysis.answer_question(
             symbol=req.symbol,
@@ -278,7 +281,7 @@ async def chat(req: ChatRequest):
 
 
 @router.get("/classify")
-async def classify(prompt: str = Query(..., min_length=1)):
+async def classify(prompt: str = Query(..., min_length=1), _user: dict = Depends(get_current_user)):
     """Classify a prompt as analyze/compare/recommend and resolve symbols."""
     result = await ai_analysis.classify_prompt(prompt)
     if result["intent"] == "compare" and result.get("symbols"):
@@ -295,6 +298,7 @@ async def classify(prompt: str = Query(..., min_length=1)):
 async def compare(
     prompt: str = Query(..., min_length=1),
     symbols: str = Query(..., min_length=1),
+    _user: dict = Depends(get_current_user),
 ):
     """Compare 2+ stocks side-by-side with AI analysis."""
     symbol_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
@@ -333,7 +337,7 @@ async def compare(
 
 
 @router.get("/recommend")
-async def recommend(prompt: str = Query(..., min_length=1)):
+async def recommend(prompt: str = Query(..., min_length=1), _user: dict = Depends(get_current_user)):
     """AI-powered stock recommendations based on user query."""
     result = await ai_analysis.generate_recommendations(prompt)
     return {
