@@ -3,7 +3,8 @@ import { useState, useCallback } from 'react';
 export interface HistoryEntry {
   id: string;
   prompt: string;
-  mode: 'analyze' | 'compare' | 'recommend';
+  displayPrompt?: string;
+  mode: 'analyze' | 'compare' | 'recommend' | 'research' | 'quantdocs';
   timestamp: number;
 }
 
@@ -26,15 +27,22 @@ function saveHistory(entries: HistoryEntry[]) {
 export function useSearchHistory() {
   const [history, setHistory] = useState<HistoryEntry[]>(loadHistory);
 
-  const addEntry = useCallback((prompt: string, mode: 'analyze' | 'compare' | 'recommend') => {
+  const addEntry = useCallback((
+    prompt: string,
+    mode: 'analyze' | 'compare' | 'recommend' | 'research' | 'quantdocs',
+    displayPrompt?: string,
+  ) => {
     setHistory((prev) => {
+      const currentLabel = (displayPrompt ?? prompt).toLowerCase();
+      const previousLabel = prev.length > 0 ? (prev[0].displayPrompt ?? prev[0].prompt).toLowerCase() : '';
       // Don't add duplicates of immediately-previous search
-      if (prev.length > 0 && prev[0].prompt.toLowerCase() === prompt.toLowerCase()) {
+      if (prev.length > 0 && previousLabel === currentLabel && prev[0].mode === mode) {
         return prev;
       }
       const entry: HistoryEntry = {
         id: crypto.randomUUID(),
         prompt,
+        displayPrompt,
         mode,
         timestamp: Date.now(),
       };

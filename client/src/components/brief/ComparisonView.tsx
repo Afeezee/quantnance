@@ -48,6 +48,8 @@ export default function ComparisonView({ stocks, comparison, onAnalyze }: Props)
             <GlassCard key={s.symbol}>
               <div style={{ textAlign: 'center', marginBottom: 16 }}>
                 <button
+                  type="button"
+                  className="comparison-symbol-button"
                   onClick={() => onAnalyze(s.symbol)}
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer',
@@ -91,6 +93,8 @@ export default function ComparisonView({ stocks, comparison, onAnalyze }: Props)
               </div>
 
               <button
+                type="button"
+                className="no-print"
                 onClick={() => onAnalyze(s.symbol)}
                 style={{
                   marginTop: 16, width: '100%', padding: '8px 0',

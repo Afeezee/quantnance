@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 
-const STEPS = [
+export interface LoadingStep {
+  label: string;
+  detail: string;
+  duration: number;
+}
+
+const DEFAULT_STEPS: LoadingStep[] = [
   { label: 'Fetching market data', detail: 'Quote, chart history & company overview', duration: 4000 },
   { label: 'Loading news & predictions', detail: 'NewsAPI & Bayse prediction markets', duration: 3000 },
   { label: 'Analysing sentiment', detail: 'Running Llama 3.3-70B on latest headlines', duration: 5000 },
@@ -9,48 +15,60 @@ const STEPS = [
 
 interface LoadingProgressProps {
   symbol?: string;
+  title?: string;
+  subtitle?: string;
+  steps?: LoadingStep[];
+  footerText?: string;
+  icon?: string;
 }
 
-export default function LoadingProgress({ symbol }: LoadingProgressProps) {
+export default function LoadingProgress({
+  symbol,
+  title,
+  subtitle,
+  steps = DEFAULT_STEPS,
+  footerText,
+  icon = '⚡',
+}: LoadingProgressProps) {
   const [activeStep, setActiveStep] = useState(0);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     setActiveStep(0);
     setProgress(0);
-  }, [symbol]);
+  }, [symbol, title, subtitle, steps]);
 
   // Advance through steps based on cumulative durations
   useEffect(() => {
-    if (activeStep >= STEPS.length - 1) return;
+    if (activeStep >= steps.length - 1) return;
     const t = setTimeout(() => {
-      setActiveStep((s) => Math.min(s + 1, STEPS.length - 1));
-    }, STEPS[activeStep].duration);
+      setActiveStep((s) => Math.min(s + 1, steps.length - 1));
+    }, steps[activeStep].duration);
     return () => clearTimeout(t);
-  }, [activeStep]);
+  }, [activeStep, steps]);
 
   // Animate progress bar within current step
   useEffect(() => {
     setProgress(0);
-    const duration = STEPS[activeStep]?.duration ?? 5000;
+    const duration = steps[activeStep]?.duration ?? 5000;
     const interval = 50;
-    const steps = duration / interval;
+    const totalTicks = duration / interval;
     let tick = 0;
     const id = setInterval(() => {
       tick++;
       // Ease-out: fill to 92% max within step (leaves room for "waiting" feel)
-      const raw = tick / steps;
+      const raw = tick / totalTicks;
       const eased = 1 - Math.pow(1 - raw, 2);
       setProgress(Math.min(eased * 92, 92));
-      if (tick >= steps) clearInterval(id);
+      if (tick >= totalTicks) clearInterval(id);
     }, interval);
     return () => clearInterval(id);
-  }, [activeStep]);
+  }, [activeStep, steps]);
 
   // Overall progress across all steps
-  const totalDuration = STEPS.reduce((a, s) => a + s.duration, 0);
-  const completedDuration = STEPS.slice(0, activeStep).reduce((a, s) => a + s.duration, 0);
-  const stepFraction = (progress / 100) * STEPS[activeStep].duration;
+  const totalDuration = steps.reduce((a, s) => a + s.duration, 0);
+  const completedDuration = steps.slice(0, activeStep).reduce((a, s) => a + s.duration, 0);
+  const stepFraction = (progress / 100) * steps[activeStep].duration;
   const overallPct = Math.round(((completedDuration + stepFraction) / totalDuration) * 100);
 
   return (
@@ -78,19 +96,23 @@ export default function LoadingProgress({ symbol }: LoadingProgressProps) {
             animation: 'pulse-glow 2s ease-in-out infinite',
           }}
         >
-          ⚡
+          {icon}
         </div>
         <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 6 }}>
-          Analysing{symbol ? <span className="text-gradient"> {symbol}</span> : ' asset'}
+          {title ?? (
+            <>
+              Analysing{symbol ? <span className="text-gradient"> {symbol}</span> : ' asset'}
+            </>
+          )}
         </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-          Gathering data from multiple sources
+          {subtitle ?? 'Gathering data from multiple sources'}
         </p>
       </div>
 
       {/* Step list */}
       <div className="glass-card" style={{ padding: '24px 28px', marginBottom: 24 }}>
-        {STEPS.map((step, i) => {
+        {steps.map((step, i) => {
           const isDone = i < activeStep;
           const isActive = i === activeStep;
           const isPending = i > activeStep;
@@ -102,7 +124,7 @@ export default function LoadingProgress({ symbol }: LoadingProgressProps) {
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: 14,
-                marginBottom: i < STEPS.length - 1 ? 20 : 0,
+                marginBottom: i < steps.length - 1 ? 20 : 0,
                 opacity: isPending ? 0.35 : 1,
                 transition: 'opacity 0.4s ease',
               }}
@@ -221,7 +243,7 @@ export default function LoadingProgress({ symbol }: LoadingProgressProps) {
           />
         </div>
         <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', marginTop: 16 }}>
-          First load may take 20–30s · Subsequent searches are cached
+          {footerText ?? 'First load may take 20–30s · Subsequent searches are cached'}
         </p>
       </div>
     </div>

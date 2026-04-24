@@ -1,3 +1,4 @@
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useBayseSocket } from '../../hooks/useBayseSocket';
 import { useTheme } from '../../hooks/useTheme';
 import { useUser, UserButton, SignInButton, SignUpButton } from '@clerk/clerk-react';
@@ -12,12 +13,24 @@ const TICKER_ITEMS = [
 
 interface NavbarProps {
   onToggleSidebar?: () => void;
+  onGoHome?: () => void;
 }
 
-export default function Navbar({ onToggleSidebar }: NavbarProps) {
+export default function Navbar({ onToggleSidebar, onGoHome }: NavbarProps) {
   const { prices, connected } = useBayseSocket();
   const { theme, toggleTheme } = useTheme();
   const { isSignedIn } = useUser();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleHomeClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    if (location.pathname === '/' && onGoHome) {
+      onGoHome();
+      return;
+    }
+    navigate('/');
+  };
 
   const renderTickerItem = (item: (typeof TICKER_ITEMS)[number], idx: number) => {
     const data = prices[item.key];
@@ -73,26 +86,29 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
       {/* Left section */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
         {/* Hamburger — toggles sidebar */}
-        <div
+        <button
+          type="button"
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: 'var(--text-secondary)',
             width: 28,
+            padding: 0,
+            background: 'none',
+            border: 'none',
             cursor: 'pointer',
           }}
           onClick={onToggleSidebar}
           title="Toggle search history"
         >
           <Menu size={18} />
-        </div>
+        </button>
         {/* Logo + title — navigates home */}
         <a
           href="/"
-          onClick={(e) => { e.preventDefault(); window.location.href = '/'; }}
-          style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', cursor: 'pointer' }}
-        >
+          onClick={handleHomeClick}
+          style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', cursor: 'pointer' }}>
         <div
           style={{
             width: 32,

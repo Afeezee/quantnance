@@ -1,0 +1,4 @@
+GROQ_API_KEY: your-groq-api-key
+BAYSE_PUBLIC_KEY: your-bayse-public-key
+NEWS_API_KEY: your-news-api-key
+CLERK_JWKS_URL: https://your-clerk-domain/.well-known/jwks.json

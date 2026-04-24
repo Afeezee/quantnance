@@ -1,9 +1,13 @@
 import asyncio
+import io
+import base64
 import time
 import logging
 from datetime import datetime, timezone
-from fastapi import APIRouter, Query, HTTPException, Depends
+from fastapi import APIRouter, Query, HTTPException, Depends, File, UploadFile, Form
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from typing import Optional
 from services import stocks, news, bayse, ai_analysis
 from auth import get_current_user
 
@@ -31,6 +35,12 @@ class ChatRequest(BaseModel):
     brief_context: dict
     conversation_history: list = []
     user_message: str
+
+
+class QuantDocsChatRequest(BaseModel):
+    conversation_history: list = []
+    user_message: str
+    document_context: dict
 
 
 @router.get("/search")
@@ -346,3 +356,223 @@ async def recommend(prompt: str = Query(..., min_length=1), _user: dict = Depend
         "recommendations": result,
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
+
+
+# ─── File content extraction helpers ─────────────────────────────────────────
+
+def _extract_pdf_text(file_bytes: bytes) -> str:
+    """Extract text from a PDF file."""
+    try:
+        from pypdf import PdfReader
+        reader = PdfReader(io.BytesIO(file_bytes))
+        text_parts = []
+        for page in reader.pages[:50]:  # Limit to 50 pages
+            text_parts.append(page.extract_text() or "")
+        return "\n".join(text_parts).strip()
+    except Exception as e:
+        log.warning("PDF extraction failed: %s", e)
+        return "[Could not extract text from the PDF file]"
+
+
+def _extract_csv_text(file_bytes: bytes) -> str:
+    """Extract text summary from a CSV file."""
+    try:
+        import pandas as pd
+        df = pd.read_csv(io.BytesIO(file_bytes))
+        summary_parts = [
+            f"CSV with {len(df)} rows and {len(df.columns)} columns.",
+            f"Columns: {', '.join(df.columns.tolist()[:30])}",
+            "",
+            "First 20 rows:",
+            df.head(20).to_string(index=False),
+        ]
+        if len(df) > 20:
+            summary_parts.extend(["", "Summary statistics:", df.describe().to_string()])
+        return "\n".join(summary_parts)
+    except Exception as e:
+        log.warning("CSV extraction failed: %s", e)
+        return "[Could not extract data from the CSV file]"
+
+
+def _extract_xlsx_text(file_bytes: bytes) -> str:
+    """Extract text summary from an Excel file."""
+    try:
+        import pandas as pd
+        xlsx = pd.ExcelFile(io.BytesIO(file_bytes))
+        parts = [f"Excel file with {len(xlsx.sheet_names)} sheet(s): {', '.join(xlsx.sheet_names[:10])}"]
+        for sheet_name in xlsx.sheet_names[:5]:
+            df = pd.read_excel(xlsx, sheet_name=sheet_name)
+            parts.append(f"\n--- Sheet: {sheet_name} ({len(df)} rows, {len(df.columns)} columns) ---")
+            parts.append(f"Columns: {', '.join(df.columns.astype(str).tolist()[:30])}")
+            parts.append(df.head(20).to_string(index=False))
+        return "\n".join(parts)
+    except Exception as e:
+        log.warning("XLSX extraction failed: %s", e)
+        return "[Could not extract data from the Excel file]"
+
+
+def _extract_financial_document_text(file: UploadFile, file_bytes: bytes) -> tuple[str | None, str | None]:
+    """Return extracted text or a user-facing error for supported QuantDocs file types."""
+    content_type = (file.content_type or "").lower()
+    filename = (file.filename or "").lower()
+
+    is_image = content_type.startswith("image/") or filename.endswith((".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff"))
+    if is_image:
+        return None, "OCR is not yet supported. Please upload a text-based PDF, XLSX, XLS, or CSV file."
+
+    if "pdf" in content_type or filename.endswith(".pdf"):
+        text = _extract_pdf_text(file_bytes)
+        if not text or len(text.strip()) < 100:
+            return None, "OCR is not yet supported. This PDF appears scanned or text-poor. Please upload a text-based PDF."
+        return text, None
+
+    if "csv" in content_type or filename.endswith(".csv"):
+        text = _extract_csv_text(file_bytes)
+        if text.startswith("[Could not"):
+            return None, "Could not read CSV data. Please check the file format and try again."
+        return text, None
+
+    if "spreadsheet" in content_type or "excel" in content_type or filename.endswith((".xlsx", ".xls")):
+        text = _extract_xlsx_text(file_bytes)
+        if text.startswith("[Could not"):
+            return None, "Could not read Excel data. Please check the file format and try again."
+        return text, None
+
+    return None, "Unsupported file type. Please upload PDF, XLSX, XLS, or CSV."
+
+
+_MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+
+
+@router.post("/research-chat")
+async def research_chat(
+    message: str = Form(...),
+    conversation_history: str = Form(default="[]"),
+    file: Optional[UploadFile] = File(default=None),
+    _user: dict = Depends(get_current_user),
+):
+    """Open-ended AI financial research chat with optional file/image attachments."""
+    import json as _json
+
+    try:
+        history = _json.loads(conversation_history)
+        if not isinstance(history, list):
+            history = []
+    except (ValueError, TypeError):
+        history = []
+
+    file_content: str | None = None
+    image_base64: str | None = None
+
+    if file:
+        if file.size and file.size > _MAX_FILE_SIZE:
+            raise HTTPException(413, "File too large. Maximum size is 10 MB.")
+
+        file_bytes = await file.read()
+        content_type = (file.content_type or "").lower()
+        filename = (file.filename or "").lower()
+
+        if content_type.startswith("image/") or filename.endswith((".png", ".jpg", ".jpeg", ".gif", ".webp")):
+            raise HTTPException(400, "Only document uploads are supported in AI chat. Please upload PDF, CSV, XLSX, or XLS files.")
+        elif "pdf" in content_type or filename.endswith(".pdf"):
+            file_content = _extract_pdf_text(file_bytes)
+        elif "csv" in content_type or filename.endswith(".csv"):
+            file_content = _extract_csv_text(file_bytes)
+        elif "spreadsheet" in content_type or "excel" in content_type or filename.endswith((".xlsx", ".xls")):
+            file_content = _extract_xlsx_text(file_bytes)
+        else:
+            # Try plain text
+            try:
+                file_content = file_bytes.decode("utf-8")[:15000]
+            except UnicodeDecodeError:
+                file_content = "[Unsupported file format. Please upload PDF, CSV, XLSX, or image files.]"
+
+    try:
+        response = await ai_analysis.research_chat(
+            user_message=message,
+            conversation_history=history,
+            file_content=file_content,
+            image_base64=image_base64,
+        )
+        return {"response": response}
+    except Exception as e:
+        log.error("Research chat failed: %s", e, exc_info=True)
+        raise HTTPException(500, f"Research chat failed: {str(e)}")
+
+
+@router.post("/quantdocs")
+async def quantdocs(
+    file: UploadFile = File(...),
+    question: Optional[str] = Form(default=""),
+    _user: dict = Depends(get_current_user),
+):
+    """Upload and analyse financial documents for QuantDocs dashboard."""
+    try:
+        if file.size and file.size > _MAX_FILE_SIZE:
+            return JSONResponse(
+                status_code=200,
+                content={"ok": False, "error": "File too large. Maximum size is 10 MB."},
+            )
+
+        file_bytes = await file.read()
+        if not file_bytes:
+            return JSONResponse(
+                status_code=200,
+                content={"ok": False, "error": "Uploaded file is empty."},
+            )
+
+        extracted_text, extract_error = _extract_financial_document_text(file, file_bytes)
+        if extract_error:
+            return JSONResponse(status_code=200, content={"ok": False, "error": extract_error})
+
+        analysis = await ai_analysis.analyze_quantdocs_document(extracted_text or "", question or "")
+        return JSONResponse(
+            status_code=200,
+            content={
+                "ok": True,
+                "filename": file.filename,
+                "question": question or "",
+                "analysis": analysis,
+                "document_context": {
+                    "filename": file.filename,
+                    "question": question or "",
+                    "analysis": analysis,
+                    "document_text": (extracted_text or "")[:30000],
+                },
+            },
+        )
+    except Exception as exc:
+        log.error("QuantDocs processing failed: %s", exc, exc_info=True)
+        return JSONResponse(
+            status_code=200,
+            content={"ok": False, "error": "Could not process this document right now. Please try again."},
+        )
+
+
+@router.post("/quantdocs-chat")
+async def quantdocs_chat(req: QuantDocsChatRequest, _user: dict = Depends(get_current_user)):
+    """Chat endpoint for uploaded QuantDocs document analysis."""
+    try:
+        response = await ai_analysis.quantdocs_chat(
+            user_message=req.user_message,
+            conversation_history=req.conversation_history,
+            document_context=req.document_context,
+        )
+        return {"response": response}
+    except Exception as exc:
+        log.error("QuantDocs chat route failed: %s", exc)
+        return {"response": "I couldn't process that question right now. Please try again."}
+
+
+@router.get("/fallback-chat")
+async def fallback_chat(
+    query: str = Query(..., min_length=1),
+    _user: dict = Depends(get_current_user),
+):
+    """When stock search fails, provide an AI fallback response."""
+    try:
+        response = await ai_analysis.fallback_chat(query)
+        return {"response": response, "query": query}
+    except Exception as e:
+        log.error("Fallback chat failed: %s", e)
+        raise HTTPException(500, f"Fallback chat failed: {str(e)}")

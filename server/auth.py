@@ -79,7 +79,7 @@ async def get_current_user(
             public_key,
             algorithms=["RS256"],
             options={"verify_aud": False},
-            leeway=60,
+            leeway=120,
         )
         return payload
     except jwt.ExpiredSignatureError:

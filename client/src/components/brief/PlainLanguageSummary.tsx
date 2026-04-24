@@ -7,7 +7,7 @@ interface PlainLanguageSummaryProps {
 
 export default function PlainLanguageSummary({ brief }: PlainLanguageSummaryProps) {
   return (
-    <GlassCard animationDelay={400} style={{ position: 'relative', overflow: 'hidden' }}>
+    <GlassCard style={{ position: 'relative', overflow: 'hidden' }}>
       {/* Top gradient line */}
       <div
         style={{

@@ -11,8 +11,13 @@ interface ChatMessage {
 }
 
 interface ChatInterfaceProps {
-  symbol: string;
-  briefContext: Record<string, unknown> | null;
+  symbol?: string;
+  briefContext?: Record<string, unknown> | null;
+  mode?: 'stock' | 'document';
+  documentContext?: Record<string, unknown> | null;
+  starterQuestions?: string[];
+  title?: string;
+  inputPlaceholder?: string;
 }
 
 const STARTERS = [
@@ -22,7 +27,15 @@ const STARTERS = [
   'How does this compare to similar assets?',
 ];
 
-export default function ChatInterface({ symbol, briefContext }: ChatInterfaceProps) {
+export default function ChatInterface({
+  symbol = '',
+  briefContext = null,
+  mode = 'stock',
+  documentContext = null,
+  starterQuestions,
+  title,
+  inputPlaceholder,
+}: ChatInterfaceProps) {
   const { getToken } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -50,6 +63,8 @@ export default function ChatInterface({ symbol, briefContext }: ChatInterfacePro
     return ctx;
   })();
 
+  const starters = starterQuestions && starterQuestions.length > 0 ? starterQuestions : STARTERS;
+
   const send = async (text: string) => {
     if (!text.trim() || loading) return;
 
@@ -61,15 +76,27 @@ export default function ChatInterface({ symbol, briefContext }: ChatInterfacePro
     try {
       const token = await getToken();
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const { data } = await axios.post(`${API_URL}/api/chat`, {
-        symbol,
-        brief_context: compactContext,
-        conversation_history: messages.map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
-        user_message: text.trim(),
-      }, { headers, timeout: 60000 });
+
+      const conversationHistory = messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+
+      const requestBody = mode === 'document'
+        ? {
+            conversation_history: conversationHistory,
+            user_message: text.trim(),
+            document_context: documentContext ?? {},
+          }
+        : {
+            symbol,
+            brief_context: compactContext,
+            conversation_history: conversationHistory,
+            user_message: text.trim(),
+          };
+
+      const endpoint = mode === 'document' ? '/api/quantdocs-chat' : '/api/chat';
+      const { data } = await axios.post(`${API_URL}${endpoint}`, requestBody, { headers, timeout: 60000 });
       setMessages((prev) => [...prev, { role: 'assistant', content: data.response }]);
     } catch {
       setMessages((prev) => [
@@ -88,14 +115,14 @@ export default function ChatInterface({ symbol, briefContext }: ChatInterfacePro
 
   return (
     <GlassCard
-      title="Ask Quantnance AI"
+      title={title ?? 'Ask Quantnance AI'}
       icon={<span style={{ fontSize: 11 }}>💬</span>}
       animationDelay={500}
     >
       {/* Starter chips */}
       {messages.length === 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-          {STARTERS.map((q) => (
+          {starters.map((q) => (
             <button
               key={q}
               onClick={() => send(q)}
@@ -223,7 +250,7 @@ export default function ChatInterface({ symbol, briefContext }: ChatInterfacePro
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask a question about this asset..."
+          placeholder={inputPlaceholder ?? (mode === 'document' ? 'Ask a question about this document...' : 'Ask a question about this asset...')}
           disabled={loading}
           style={{
             flex: 1,

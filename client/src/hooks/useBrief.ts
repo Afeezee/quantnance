@@ -187,46 +187,52 @@ export function useBrief() {
     setComparison(null);
     setRecommendations(null);
     setError(null);
+    setMode('idle');
   }, []);
 
   const analyze = useCallback(async (prompt: string) => {
     setLoading(true);
     setError(null);
     reset();
+
+    /** Helper: make a request, retry once with a fresh token on 401. */
+    async function authedGet<T>(url: string, params: Record<string, string>, timeout = 120000) {
+      let token = await getToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      try {
+        return await axios.get<T>(url, { params, headers, timeout });
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+          token = await getToken({ skipCache: true });
+          const h2 = token ? { Authorization: `Bearer ${token}` } : {};
+          return await axios.get<T>(url, { params, headers: h2, timeout });
+        }
+        throw err;
+      }
+    }
+
     try {
-      // Fresh token for classify (short call)
-      const token1 = await getToken();
-      const headers1 = token1 ? { Authorization: `Bearer ${token1}` } : {};
-
       // 1. Classify intent
-      const { data: cls } = await axios.get<{ intent: string; symbols: string[] }>(
-        `${API_URL}/api/classify`, { params: { prompt }, headers: headers1, timeout: 60000 },
+      const { data: cls } = await authedGet<{ intent: string; symbols: string[] }>(
+        `${API_URL}/api/classify`, { prompt }, 60000,
       );
-
-      // Fresh token for the main (slow) call — classify may have taken seconds
-      const token2 = await getToken();
-      const headers2 = token2 ? { Authorization: `Bearer ${token2}` } : {};
 
       if (cls.intent === 'recommend') {
         setMode('recommend');
-        const { data } = await axios.get<RecommendationResult>(
-          `${API_URL}/api/recommend`, { params: { prompt }, headers: headers2, timeout: 120000 },
+        const { data } = await authedGet<RecommendationResult>(
+          `${API_URL}/api/recommend`, { prompt },
         );
         setRecommendations(data);
       } else if (cls.intent === 'compare' && cls.symbols?.length >= 2) {
         setMode('compare');
-        const { data } = await axios.get<ComparisonResult>(
-          `${API_URL}/api/compare`, {
-            params: { prompt, symbols: cls.symbols.join(',') },
-            headers: headers2,
-            timeout: 120000,
-          },
+        const { data } = await authedGet<ComparisonResult>(
+          `${API_URL}/api/compare`, { prompt, symbols: cls.symbols.join(',') },
         );
         setComparison(data);
       } else {
         setMode('analyze');
-        const { data } = await axios.get<BriefData>(
-          `${API_URL}/api/analyze`, { params: { prompt }, headers: headers2, timeout: 120000 },
+        const { data } = await authedGet<BriefData>(
+          `${API_URL}/api/analyze`, { prompt },
         );
         setBrief(data);
       }
@@ -241,5 +247,5 @@ export function useBrief() {
     }
   }, [reset, getToken]);
 
-  return { brief, comparison, recommendations, mode, loading, error, analyze };
+  return { brief, comparison, recommendations, mode, loading, error, analyze, reset };
 }

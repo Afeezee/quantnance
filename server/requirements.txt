@@ -6,3 +6,8 @@ groq
 pydantic==2.10.3
 PyJWT>=2.8.0
 cryptography>=42.0.0
+pypdf>=5.0.0
+pandas>=2.2.0
+openpyxl>=3.1.0
+xlrd>=2.0.1
+python-multipart>=0.0.9

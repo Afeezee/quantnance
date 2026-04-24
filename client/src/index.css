@@ -380,3 +380,76 @@ h1, h2, h3, h4, h5, h6 {
 .stagger-6 { animation-delay: 300ms; }
 .stagger-7 { animation-delay: 350ms; }
 .stagger-8 { animation-delay: 400ms; }
+
+.metric-cell {
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.quantdocs-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 1024px) {
+  .quantdocs-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .quantdocs-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  @page {
+    size: landscape;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  nav,
+  .sidebar-backdrop,
+  .sidebar-panel,
+  .no-print,
+  .quantdocs-actions {
+    display: none !important;
+  }
+
+  .container {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .app-print-root,
+  .quantdocs-print-root {
+    gap: 16px !important;
+  }
+
+  .app-print-root .glass-card,
+  .quantdocs-print-root .glass-card {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #d1d5db !important;
+    background: #fff !important;
+  }
+
+  .app-print-root .glass-card:hover,
+  .quantdocs-print-root .glass-card:hover {
+    transform: none !important;
+  }
+
+  .app-print-root .comparison-symbol-button {
+    color: #111 !important;
+  }
+}
