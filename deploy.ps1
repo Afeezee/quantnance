@@ -47,6 +47,14 @@ Get-Content $BACKEND_ENV_FILE | ForEach-Object {
     }
 }
 
+if (-not [string]::IsNullOrWhiteSpace($env:DATABASE_URL)) {
+    $_backendDeployEnv["DATABASE_URL"] = $env:DATABASE_URL
+}
+
+if (-not [string]::IsNullOrWhiteSpace($env:CLOUD_SQL_INSTANCE)) {
+    $_backendDeployEnv["CLOUD_SQL_INSTANCE"] = $env:CLOUD_SQL_INSTANCE
+}
+
 # ── Frontend Clerk key (baked into the JS bundle at build time) ───────────────
 $VITE_CLERK_PUBLISHABLE_KEY = $_clientEnv["VITE_CLERK_PUBLISHABLE_KEY"]
 $CLOUD_SQL_INSTANCE = $_backendDeployEnv["CLOUD_SQL_INSTANCE"]
@@ -138,8 +146,14 @@ $ROOT = $PSScriptRoot
 # =============================================================================
 Step 1 "Authenticate with Google Cloud"
 
-gcloud auth login
-if ($LASTEXITCODE -ne 0) { Fail "gcloud auth login failed" }
+$activeAccount = gcloud auth list --filter=status:ACTIVE --format="value(account)"
+if ([string]::IsNullOrWhiteSpace($activeAccount)) {
+    gcloud auth login
+    if ($LASTEXITCODE -ne 0) { Fail "gcloud auth login failed" }
+}
+else {
+    OK "Using active gcloud account $activeAccount"
+}
 
 gcloud config set project $PROJECT_ID
 if ($LASTEXITCODE -ne 0) { Fail "Could not set GCP project '$PROJECT_ID'" }
@@ -152,7 +166,7 @@ OK "Project set to $PROJECT_ID"
 # =============================================================================
 Step 2 "Enable Cloud Run and Cloud Build APIs"
 
-gcloud services enable run.googleapis.com cloudbuild.googleapis.com containerregistry.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com --quiet
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com containerregistry.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com sql-component.googleapis.com --quiet
 if ($LASTEXITCODE -ne 0) { Fail "Failed to enable APIs" }
 OK "APIs enabled"
 
@@ -181,6 +195,14 @@ foreach ($secretKey in $BACKEND_SECRET_KEYS) {
     if ($LASTEXITCODE -ne 0) {
         Fail "Failed to grant Secret Manager access for '$secretName' to '$RUNTIME_SERVICE_ACCOUNT'"
     }
+}
+
+gcloud projects add-iam-policy-binding $PROJECT_ID `
+    --member "serviceAccount:$RUNTIME_SERVICE_ACCOUNT" `
+    --role "roles/cloudsql.client" `
+    --quiet *> $null
+if ($LASTEXITCODE -ne 0) {
+    Fail "Failed to grant Cloud SQL Client to '$RUNTIME_SERVICE_ACCOUNT'"
 }
 OK "Backend secrets synced"
 
@@ -215,6 +237,7 @@ gcloud run deploy $BACKEND_SVC `
     --max-instances 10 `
     --port 8080 `
     --allow-unauthenticated `
+    --clear-env-vars `
     --add-cloudsql-instances "$CLOUD_SQL_INSTANCE" `
     --set-secrets "$backendSecretsArg" `
     --quiet
