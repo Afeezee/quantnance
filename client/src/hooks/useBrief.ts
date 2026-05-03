@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import axios from 'axios';
 
+import { authedGet } from '../lib/authedAxios';
+
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 /* ─── Types ──────────────────────────────────── */
@@ -195,44 +197,36 @@ export function useBrief() {
     setError(null);
     reset();
 
-    /** Helper: make a request, retry once with a fresh token on 401. */
-    async function authedGet<T>(url: string, params: Record<string, string>, timeout = 120000) {
-      let token = await getToken();
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      try {
-        return await axios.get<T>(url, { params, headers, timeout });
-      } catch (err) {
-        if (axios.isAxiosError(err) && err.response?.status === 401) {
-          token = await getToken({ skipCache: true });
-          const h2 = token ? { Authorization: `Bearer ${token}` } : {};
-          return await axios.get<T>(url, { params, headers: h2, timeout });
-        }
-        throw err;
-      }
-    }
-
     try {
       // 1. Classify intent
       const { data: cls } = await authedGet<{ intent: string; symbols: string[] }>(
-        `${API_URL}/api/classify`, { prompt }, 60000,
+        getToken,
+        `${API_URL}/api/classify`,
+        { params: { prompt }, timeout: 60000 },
       );
 
       if (cls.intent === 'recommend') {
         setMode('recommend');
         const { data } = await authedGet<RecommendationResult>(
-          `${API_URL}/api/recommend`, { prompt },
+          getToken,
+          `${API_URL}/api/recommend`,
+          { params: { prompt } },
         );
         setRecommendations(data);
       } else if (cls.intent === 'compare' && cls.symbols?.length >= 2) {
         setMode('compare');
         const { data } = await authedGet<ComparisonResult>(
-          `${API_URL}/api/compare`, { prompt, symbols: cls.symbols.join(',') },
+          getToken,
+          `${API_URL}/api/compare`,
+          { params: { prompt, symbols: cls.symbols.join(',') } },
         );
         setComparison(data);
       } else {
         setMode('analyze');
         const { data } = await authedGet<BriefData>(
-          `${API_URL}/api/analyze`, { prompt },
+          getToken,
+          `${API_URL}/api/analyze`,
+          { params: { prompt } },
         );
         setBrief(data);
       }

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="ring" x1="118" y1="132" x2="402" y2="392" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1ea8ff"/>
+      <stop offset="1" stop-color="#29e0d0"/>
+    </linearGradient>
+    <linearGradient id="bg" x1="64" y1="64" x2="448" y2="448" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0f1a2d"/>
+      <stop offset="1" stop-color="#07111f"/>
+    </linearGradient>
+    <filter id="shadow" x="48" y="48" width="416" height="416" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#020617" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <rect x="64" y="64" width="384" height="384" rx="86" fill="url(#bg)"/>
+    <rect x="65.5" y="65.5" width="381" height="381" rx="84.5" stroke="#1e293b" stroke-width="3"/>
+  </g>
+  <circle cx="240" cy="216" r="108" fill="#08111f"/>
+  <circle cx="240" cy="216" r="122" stroke="url(#ring)" stroke-width="34"/>
+  <path d="M318 296L388 366" stroke="url(#ring)" stroke-linecap="round" stroke-width="34"/>
+  <rect x="176" y="256" width="27" height="44" rx="5" fill="#f8fafc"/>
+  <rect x="220" y="224" width="27" height="76" rx="5" fill="#f8fafc"/>
+  <rect x="264" y="182" width="27" height="118" rx="5" fill="#f8fafc"/>
+  <path d="M168 238L214 196L254 214L298 160" stroke="#f8fafc" stroke-linecap="round" stroke-linejoin="round" stroke-width="14"/>
+  <circle cx="168" cy="238" r="13" fill="#f8fafc"/>
+  <circle cx="214" cy="196" r="13" fill="#f8fafc"/>
+  <circle cx="254" cy="214" r="13" fill="#f8fafc"/>
+  <circle cx="298" cy="160" r="13" fill="#f8fafc"/>
+</svg>

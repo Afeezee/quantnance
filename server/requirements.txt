@@ -11,3 +11,6 @@ pandas>=2.2.0
 openpyxl>=3.1.0
 xlrd>=2.0.1
 python-multipart>=0.0.9
+SQLAlchemy>=2.0.36
+asyncpg>=0.30.0
+aiosqlite>=0.20.0

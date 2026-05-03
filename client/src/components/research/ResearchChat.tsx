@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent, type C
 import { useAuth } from '@clerk/clerk-react';
 import axios from 'axios';
 import { Paperclip, Send, X, FileText, Image as ImageIcon, Sheet } from 'lucide-react';
+import BrandMark from '../shared/BrandMark';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
@@ -204,22 +205,7 @@ export default function ResearchChat({ initialMessage, initialContext: _initialC
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-teal))',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-              fontSize: 18,
-              color: '#fff',
-            }}
-          >
-            Q
-          </div>
+          <BrandMark size={40} alt="Quantnance AI" />
           <div>
             <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
               AI Research Assistant
@@ -318,24 +304,7 @@ export default function ResearchChat({ initialMessage, initialContext: _initialC
             }}
           >
             {m.role === 'assistant' && (
-              <div
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-violet))',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: '#fff',
-                  flexShrink: 0,
-                  marginTop: 2,
-                }}
-              >
-                Q
-              </div>
+              <BrandMark size={32} alt="Quantnance AI" style={{ marginTop: 2 }} />
             )}
             <div
               style={{
@@ -402,23 +371,7 @@ export default function ResearchChat({ initialMessage, initialContext: _initialC
         {/* Typing indicator */}
         {loading && (
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-violet))',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 14,
-                fontWeight: 700,
-                color: '#fff',
-                flexShrink: 0,
-              }}
-            >
-              Q
-            </div>
+            <BrandMark size={32} alt="Quantnance AI" />
             <div
               style={{
                 padding: '14px 22px',

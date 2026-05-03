@@ -15,6 +15,7 @@ dist-ssr/
 
 # Server cache (API response cache)
 server/cache/
+server/*.db
 
 # Cloud Run env
 server/cloudrun-env.yaml

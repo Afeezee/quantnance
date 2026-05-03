@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, type FormEvent } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import axios from 'axios';
 import GlassCard from '../shared/GlassCard';
+import BrandMark from '../shared/BrandMark';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
@@ -116,7 +117,7 @@ export default function ChatInterface({
   return (
     <GlassCard
       title={title ?? 'Ask Quantnance AI'}
-      icon={<span style={{ fontSize: 11 }}>💬</span>}
+      icon={<BrandMark size={16} alt="" />}
       animationDelay={500}
     >
       {/* Starter chips */}
@@ -161,23 +162,7 @@ export default function ChatInterface({
             }}
           >
             {m.role === 'assistant' && (
-              <div
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-violet))',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: '#fff',
-                  flexShrink: 0,
-                }}
-              >
-                Q
-              </div>
+              <BrandMark size={28} alt="Quantnance AI" />
             )}
             <div
               style={{
@@ -199,23 +184,7 @@ export default function ChatInterface({
         {/* Typing indicator */}
         {loading && (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-violet))',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 12,
-                fontWeight: 700,
-                color: '#fff',
-                flexShrink: 0,
-              }}
-            >
-              Q
-            </div>
+            <BrandMark size={28} alt="Quantnance AI" />
             <div
               style={{
                 padding: '12px 20px',

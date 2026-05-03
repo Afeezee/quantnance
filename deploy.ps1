@@ -34,8 +34,30 @@ Get-Content "$PSScriptRoot\client\.env" | ForEach-Object {
     if ($_ -match '^([A-Za-z_]+)=(.+)$') { $_clientEnv[$Matches[1]] = $Matches[2] }
 }
 
+$_backendDeployEnv = @{}
+Get-Content $BACKEND_ENV_FILE | ForEach-Object {
+    if ($_ -match '^\s*#') { return }
+    if ($_ -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.+?)\s*$') {
+        $key = $Matches[1]
+        $value = $Matches[2].Trim()
+        if (($value.StartsWith('"') -and $value.EndsWith('"')) -or ($value.StartsWith("'") -and $value.EndsWith("'"))) {
+            $value = $value.Substring(1, $value.Length - 2)
+        }
+        $_backendDeployEnv[$key] = $value
+    }
+}
+
 # ── Frontend Clerk key (baked into the JS bundle at build time) ───────────────
 $VITE_CLERK_PUBLISHABLE_KEY = $_clientEnv["VITE_CLERK_PUBLISHABLE_KEY"]
+$CLOUD_SQL_INSTANCE = $_backendDeployEnv["CLOUD_SQL_INSTANCE"]
+$BACKEND_SECRET_KEYS = @(
+    "GROQ_API_KEY",
+    "BAYSE_PUBLIC_KEY",
+    "ALPHA_VANTAGE_KEY",
+    "NEWS_API_KEY",
+    "CLERK_JWKS_URL",
+    "DATABASE_URL"
+)
 
 # =============================================================================
 
@@ -59,9 +81,54 @@ function Require-File {
     }
 }
 
+function Secret-Name {
+    param($key)
+    return ("{0}-{1}" -f $BACKEND_SVC.ToLowerInvariant(), $key.ToLowerInvariant().Replace('_', '-'))
+}
+
+function Upsert-Secret {
+    param(
+        [string]$Key,
+        [string]$Value
+    )
+
+    $secretName = Secret-Name $Key
+    gcloud secrets describe $secretName --project $PROJECT_ID *> $null
+    if ($LASTEXITCODE -ne 0) {
+        gcloud secrets create $secretName --replication-policy automatic --project $PROJECT_ID --quiet
+        if ($LASTEXITCODE -ne 0) { Fail "Failed to create secret '$secretName'" }
+    }
+
+    $tempFile = [System.IO.Path]::GetTempFileName()
+    try {
+        [System.IO.File]::WriteAllText($tempFile, $Value)
+        gcloud secrets versions add $secretName --data-file=$tempFile --project $PROJECT_ID --quiet
+        if ($LASTEXITCODE -ne 0) { Fail "Failed to add secret version for '$secretName'" }
+    }
+    finally {
+        Remove-Item $tempFile -ErrorAction SilentlyContinue
+    }
+}
+
+function Quote-ForSetArgs {
+    param([string]$value)
+    if ($value -match '[,=]') {
+        return '"' + $value.Replace('"', '\"') + '"'
+    }
+    return $value
+}
+
 # Validate all required values
 Require-File  $BACKEND_ENV_FILE              "server/cloudrun-env.yaml"
 Require-Value "VITE_CLERK_PUBLISHABLE_KEY"  $VITE_CLERK_PUBLISHABLE_KEY
+foreach ($requiredKey in $BACKEND_SECRET_KEYS) {
+    Require-Value $requiredKey $_backendDeployEnv[$requiredKey]
+}
+Require-Value "CLOUD_SQL_INSTANCE" $CLOUD_SQL_INSTANCE
+
+if ($_backendDeployEnv["DATABASE_URL"] -match '^sqlite') {
+    Fail "DATABASE_URL points to SQLite. Use a Cloud SQL Postgres connection string before deploying."
+}
 
 # Store the script's own directory so relative paths always resolve correctly
 $ROOT = $PSScriptRoot
@@ -85,14 +152,42 @@ OK "Project set to $PROJECT_ID"
 # =============================================================================
 Step 2 "Enable Cloud Run and Cloud Build APIs"
 
-gcloud services enable run.googleapis.com cloudbuild.googleapis.com containerregistry.googleapis.com --quiet
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com containerregistry.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com --quiet
 if ($LASTEXITCODE -ne 0) { Fail "Failed to enable APIs" }
 OK "APIs enabled"
 
 # =============================================================================
-# STEP 3 — Build and push the backend image (Cloud Build)
+# STEP 3 — Sync backend secrets into Secret Manager
 # =============================================================================
-Step 3 "Build and push backend image via Cloud Build"
+Step 3 "Sync backend runtime secrets to Secret Manager"
+
+$PROJECT_NUMBER = gcloud projects describe $PROJECT_ID --format "value(projectNumber)"
+if ([string]::IsNullOrWhiteSpace($PROJECT_NUMBER)) {
+    Fail "Could not determine project number for '$PROJECT_ID'"
+}
+
+$RUNTIME_SERVICE_ACCOUNT = "$PROJECT_NUMBER-compute@developer.gserviceaccount.com"
+
+foreach ($secretKey in $BACKEND_SECRET_KEYS) {
+    $secretValue = $_backendDeployEnv[$secretKey]
+    Upsert-Secret -Key $secretKey -Value $secretValue
+
+    $secretName = Secret-Name $secretKey
+    gcloud secrets add-iam-policy-binding $secretName `
+        --member "serviceAccount:$RUNTIME_SERVICE_ACCOUNT" `
+        --role "roles/secretmanager.secretAccessor" `
+        --project $PROJECT_ID `
+        --quiet *> $null
+    if ($LASTEXITCODE -ne 0) {
+        Fail "Failed to grant Secret Manager access for '$secretName' to '$RUNTIME_SERVICE_ACCOUNT'"
+    }
+}
+OK "Backend secrets synced"
+
+# =============================================================================
+# STEP 4 — Build and push the backend image (Cloud Build)
+# =============================================================================
+Step 4 "Build and push backend image via Cloud Build"
 
 gcloud builds submit "$ROOT/server" `
     --tag "$BACKEND_IMG" `
@@ -102,9 +197,13 @@ if ($LASTEXITCODE -ne 0) { Fail "Backend Cloud Build failed" }
 OK "Image built and pushed: $BACKEND_IMG"
 
 # =============================================================================
-# STEP 4 — Deploy backend to Cloud Run (initial deploy, no FRONTEND_URL yet)
+# STEP 5 — Deploy backend to Cloud Run (initial deploy, no FRONTEND_URL yet)
 # =============================================================================
-Step 4 "Deploy backend to Cloud Run"
+Step 5 "Deploy backend to Cloud Run"
+
+$backendSecretsArg = ($BACKEND_SECRET_KEYS | ForEach-Object {
+    "{0}={1}:latest" -f $_, (Secret-Name $_)
+}) -join ","
 
 gcloud run deploy $BACKEND_SVC `
     --image "$BACKEND_IMG" `
@@ -116,16 +215,17 @@ gcloud run deploy $BACKEND_SVC `
     --max-instances 10 `
     --port 8080 `
     --allow-unauthenticated `
-    --env-vars-file "$BACKEND_ENV_FILE" `
+    --add-cloudsql-instances "$CLOUD_SQL_INSTANCE" `
+    --set-secrets "$backendSecretsArg" `
     --quiet
 
 if ($LASTEXITCODE -ne 0) { Fail "Backend Cloud Run deploy failed" }
 OK "Backend deployed"
 
 # =============================================================================
-# STEP 5 — Capture the backend URL
+# STEP 6 — Capture the backend URL
 # =============================================================================
-Step 5 "Retrieve backend Cloud Run URL"
+Step 6 "Retrieve backend Cloud Run URL"
 
 $BACKEND_URL = gcloud run services describe $BACKEND_SVC `
     --platform managed `
@@ -138,9 +238,9 @@ if ([string]::IsNullOrWhiteSpace($BACKEND_URL)) {
 OK "Backend URL: $BACKEND_URL"
 
 # =============================================================================
-# STEP 6 — Build and push the frontend image via Cloud Build
+# STEP 7 — Build and push the frontend image via Cloud Build
 # =============================================================================
-Step 6 "Build and push frontend image via Cloud Build (BACKEND_URL=$BACKEND_URL)"
+Step 7 "Build and push frontend image via Cloud Build (BACKEND_URL=$BACKEND_URL)"
 
 # Use cloudbuild.yaml to pass VITE_CLERK_PUBLISHABLE_KEY as a Docker build-arg
 gcloud builds submit "$ROOT/client" `
@@ -152,9 +252,9 @@ if ($LASTEXITCODE -ne 0) { Fail "Frontend Cloud Build failed" }
 OK "Image built and pushed: $FRONTEND_IMG"
 
 # =============================================================================
-# STEP 7 — Deploy frontend to Cloud Run
+# STEP 8 — Deploy frontend to Cloud Run
 # =============================================================================
-Step 7 "Deploy frontend to Cloud Run"
+Step 8 "Deploy frontend to Cloud Run"
 
 gcloud run deploy $FRONTEND_SVC `
     --image "$FRONTEND_IMG" `
@@ -173,9 +273,9 @@ if ($LASTEXITCODE -ne 0) { Fail "Frontend Cloud Run deploy failed" }
 OK "Frontend deployed"
 
 # =============================================================================
-# STEP 8 — Capture the frontend URL
+# STEP 9 — Capture the frontend URL
 # =============================================================================
-Step 8 "Retrieve frontend Cloud Run URL"
+Step 9 "Retrieve frontend Cloud Run URL"
 
 $FRONTEND_URL = gcloud run services describe $FRONTEND_SVC `
     --platform managed `
@@ -188,15 +288,17 @@ if ([string]::IsNullOrWhiteSpace($FRONTEND_URL)) {
 OK "Frontend URL: $FRONTEND_URL"
 
 # =============================================================================
-# STEP 9 — Update backend CORS to accept the frontend origin
+# STEP 10 — Update backend CORS to accept the frontend origin
 # We update only env vars — no image rebuild needed
 # =============================================================================
-Step 9 "Update backend CORS to allow $FRONTEND_URL"
+Step 10 "Update backend CORS to allow $FRONTEND_URL"
+
+$quotedFrontendUrl = Quote-ForSetArgs $FRONTEND_URL
 
 gcloud run services update $BACKEND_SVC `
     --platform managed `
     --region $REGION `
-    --update-env-vars "FRONTEND_URL=$FRONTEND_URL" `
+    --update-env-vars "FRONTEND_URL=$quotedFrontendUrl" `
     --quiet
 
 if ($LASTEXITCODE -ne 0) { Fail "Failed to update backend env vars" }

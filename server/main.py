@@ -9,7 +9,9 @@ load_dotenv(Path(__file__).resolve().parent / ".env")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from database import init_database, close_database
 from routes.brief import router as brief_router
+from routes.history import router as history_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,10 +49,12 @@ app.add_middleware(
 )
 
 app.include_router(brief_router, prefix="/api")
+app.include_router(history_router, prefix="/api")
 
 
 @app.on_event("startup")
 async def startup_event():
+    await init_database()
     logger.info("Quantnance API ready")
     required_keys = [
         "BAYSE_PUBLIC_KEY",
@@ -71,6 +75,11 @@ async def startup_event():
         logger.info("✅ All API keys loaded successfully")
     else:
         logger.warning("⚠️  Some API keys are missing — affected features will fail")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await close_database()
 
 
 @app.get("/")

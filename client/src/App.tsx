@@ -15,6 +15,7 @@ import PlainLanguageSummary from './components/brief/PlainLanguageSummary';
 import ChatInterface from './components/brief/ChatInterface';
 import ComparisonView from './components/brief/ComparisonView';
 import RecommendationView from './components/brief/RecommendationView';
+import BrandMark from './components/shared/BrandMark';
 import ResearchPage from './pages/ResearchPage';
 import QuantDocsPage from './pages/QuantDocsPage';
 import { useBrief } from './hooks/useBrief';
@@ -116,11 +117,27 @@ function formatTimeLabel(ts: number): string {
   return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-function HistorySidebar({ open, history, onSelect, onClear, onClose }: {
+function HistorySidebar({
+  open,
+  history,
+  loading,
+  loadingMore,
+  hasMore,
+  pendingDeleteIds,
+  onSelect,
+  onDelete,
+  onLoadMore,
+  onClose,
+}: {
   open: boolean;
   history: HistoryEntry[];
+  loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
+  pendingDeleteIds: ReadonlySet<string>;
   onSelect: (prompt: string, mode: string) => void;
-  onClear: () => void;
+  onDelete: (entryId: string) => void | Promise<void>;
+  onLoadMore: () => void | Promise<void>;
   onClose: () => void;
 }) {
   const [filter, setFilter] = useState('');
@@ -197,18 +214,7 @@ function HistorySidebar({ open, history, onSelect, onClear, onClose }: {
           justifyContent: 'space-between',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-teal))',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-              fontSize: 14,
-              color: '#fff',
-            }}>Q</div>
+            <BrandMark size={32} />
             <div>
               <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)' }}>
                 Quantnance <span style={{ color: 'var(--accent-blue)', fontStyle: 'italic' }}>AI</span>
@@ -263,7 +269,17 @@ function HistorySidebar({ open, history, onSelect, onClear, onClose }: {
 
         {/* History List */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '12px 12px' }}>
-          {history.length === 0 ? (
+          {loading ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '40px 20px',
+              color: 'var(--text-muted)',
+              fontSize: 13,
+            }}>
+              <Clock size={24} style={{ marginBottom: 8, opacity: 0.4 }} />
+              <p>Loading history...</p>
+            </div>
+          ) : history.length === 0 ? (
             <div style={{
               textAlign: 'center',
               padding: '40px 20px',
@@ -308,47 +324,55 @@ function HistorySidebar({ open, history, onSelect, onClear, onClose }: {
                         {text} · {labels[entry.id] ?? ''}
                       </div>
                     </div>
-                    <ArrowRight size={12} style={{ opacity: 0.3, flexShrink: 0 }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                      <ArrowRight size={12} style={{ opacity: 0.3 }} />
+                      <button
+                        type="button"
+                        aria-label="Delete history entry"
+                        disabled={pendingDeleteIds.has(entry.id)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void onDelete(entry.id);
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-muted)',
+                          cursor: pendingDeleteIds.has(entry.id) ? 'default' : 'pointer',
+                          padding: 4,
+                          borderRadius: 6,
+                          display: 'flex',
+                          opacity: pendingDeleteIds.has(entry.id) ? 0.4 : 0.7,
+                        }}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </div>
                 );
               })}
+              {!filter.trim() && hasMore && (
+                <button
+                  type="button"
+                  onClick={() => { void onLoadMore(); }}
+                  disabled={loadingMore}
+                  style={{
+                    marginTop: 10,
+                    background: 'none',
+                    border: '1px solid var(--card-border)',
+                    borderRadius: 10,
+                    color: 'var(--text-secondary)',
+                    cursor: loadingMore ? 'default' : 'pointer',
+                    fontSize: 12,
+                    padding: '8px 10px',
+                  }}
+                >
+                  {loadingMore ? 'Loading...' : 'Load older history'}
+                </button>
+              )}
             </div>
           )}
         </div>
-
-        {/* Clear button */}
-        {history.length > 0 && (
-          <div style={{ padding: '12px 16px', borderTop: '1px solid var(--card-border)' }}>
-            <button
-              onClick={onClear}
-              style={{
-                width: '100%',
-                background: 'none',
-                border: '1px solid var(--card-border)',
-                borderRadius: 10,
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-                fontSize: 12,
-                padding: '8px 0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--danger)';
-                (e.currentTarget as HTMLButtonElement).style.color = 'var(--danger)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--card-border)';
-                (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)';
-              }}
-            >
-              <Trash2 size={12} /> Clear History
-            </button>
-          </div>
-        )}
       </aside>
     </>
   );
@@ -359,7 +383,7 @@ function HomePage() {
   const [pendingPrompt, setPendingPrompt] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { brief, comparison, recommendations, mode, loading, error, analyze, reset } = useBrief();
-  const { history, addEntry, clearHistory } = useSearchHistory();
+  const { history, loading: historyLoading, loadingMore, hasMore, pendingDeleteIds, addEntry, deleteEntry, loadMore } = useSearchHistory();
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
   const verdictRef = useRef<HTMLDivElement>(null);
@@ -382,7 +406,7 @@ function HomePage() {
   // Record to history when results arrive
   useEffect(() => {
     if (hasResult && pendingPrompt && mode !== 'idle') {
-      addEntry(pendingPrompt, mode as 'analyze' | 'compare' | 'recommend');
+      void addEntry(pendingPrompt, mode as 'analyze' | 'compare' | 'recommend');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasResult]);
@@ -438,8 +462,13 @@ function HomePage() {
         <HistorySidebar
           open={sidebarOpen}
           history={history}
+          loading={historyLoading}
+          loadingMore={loadingMore}
+          hasMore={hasMore}
+          pendingDeleteIds={pendingDeleteIds}
           onSelect={handleHistorySelect}
-          onClear={clearHistory}
+          onDelete={deleteEntry}
+          onLoadMore={loadMore}
           onClose={() => setSidebarOpen(false)}
         />
       </SignedIn>

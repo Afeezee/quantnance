@@ -3,6 +3,7 @@ import { useBayseSocket } from '../../hooks/useBayseSocket';
 import { useTheme } from '../../hooks/useTheme';
 import { useUser, UserButton, SignInButton, SignUpButton } from '@clerk/clerk-react';
 import { Sun, Moon, Menu } from 'lucide-react';
+import BrandMark from '../shared/BrandMark';
 
 const TICKER_ITEMS = [
   { symbol: 'BTC/USDT', key: 'BTCUSDT' },
@@ -109,35 +110,20 @@ export default function Navbar({ onToggleSidebar, onGoHome }: NavbarProps) {
           href="/"
           onClick={handleHomeClick}
           style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', cursor: 'pointer' }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-teal))',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 700,
-            fontSize: 16,
-            color: '#fff',
-          }}
-        >
-          Q
-        </div>
-        <span style={{ fontWeight: 700, fontSize: 18, color: 'var(--text-primary)' }}>
-          Quantnance
-        </span>
-        <span
-          style={{
-            fontStyle: 'italic',
-            color: 'var(--accent-blue)',
-            fontWeight: 600,
-            fontSize: 14,
-          }}
-        >
-          AI
-        </span>
+          <BrandMark size={32} />
+          <span style={{ fontWeight: 700, fontSize: 18, color: 'var(--text-primary)' }}>
+            Quantnance
+          </span>
+          <span
+            style={{
+              fontStyle: 'italic',
+              color: 'var(--accent-blue)',
+              fontWeight: 600,
+              fontSize: 14,
+            }}
+          >
+            AI
+          </span>
         </a>
       </div>
 

@@ -14,7 +14,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy only the application source — no venv, no .env, no __pycache__
-COPY main.py auth.py ./
+COPY main.py auth.py database.py ./
+COPY models/ ./models/
 COPY routes/ ./routes/
 COPY services/ ./services/
 

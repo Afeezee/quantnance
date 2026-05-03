@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="320" viewBox="0 0 1100 320" fill="none">
+  <defs>
+    <linearGradient id="brandGradient" x1="88" y1="72" x2="312" y2="248" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1ea8ff"/>
+      <stop offset="1" stop-color="#29e0d0"/>
+    </linearGradient>
+    <linearGradient id="lineGradient" x1="412" y1="202" x2="958" y2="202" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1ea8ff"/>
+      <stop offset="1" stop-color="#29e0d0"/>
+    </linearGradient>
+  </defs>
+  <circle cx="198" cy="148" r="92" fill="#08111f"/>
+  <circle cx="198" cy="148" r="104" stroke="url(#brandGradient)" stroke-width="28"/>
+  <path d="M264 216L326 278" stroke="url(#brandGradient)" stroke-linecap="round" stroke-width="28"/>
+  <rect x="142" y="182" width="22" height="36" rx="4" fill="#f8fafc"/>
+  <rect x="178" y="156" width="22" height="62" rx="4" fill="#f8fafc"/>
+  <rect x="214" y="122" width="22" height="96" rx="4" fill="#f8fafc"/>
+  <path d="M136 168L174 132L208 146L244 100" stroke="#f8fafc" stroke-linecap="round" stroke-linejoin="round" stroke-width="11"/>
+  <circle cx="136" cy="168" r="10" fill="#f8fafc"/>
+  <circle cx="174" cy="132" r="10" fill="#f8fafc"/>
+  <circle cx="208" cy="146" r="10" fill="#f8fafc"/>
+  <circle cx="244" cy="100" r="10" fill="#f8fafc"/>
+  <text x="412" y="168" fill="#f8fafc" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="108" font-weight="700" letter-spacing="-4">
+    <tspan fill="url(#brandGradient)">Q</tspan><tspan>uantnance</tspan>
+  </text>
+  <path d="M412 202H958" stroke="url(#lineGradient)" stroke-linecap="round" stroke-width="8"/>
+  <text x="412" y="268" fill="#c7d2e0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="62" font-weight="400" letter-spacing="-1">
+    Finance, quantified and clarified.
+  </text>
+</svg>
