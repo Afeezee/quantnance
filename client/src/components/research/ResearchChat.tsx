@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent, type ChangeEvent } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth, useClerk } from '@clerk/clerk-react';
 import axios from 'axios';
 import { Paperclip, Send, X, FileText, Image as ImageIcon, Sheet } from 'lucide-react';
 import BrandMark from '../shared/BrandMark';
@@ -48,7 +48,8 @@ interface ResearchChatProps {
 }
 
 export default function ResearchChat({ initialMessage, initialContext: _initialContext }: ResearchChatProps) {
-  const { getToken } = useAuth();
+  const { getToken, isSignedIn } = useAuth();
+  const { openSignIn } = useClerk();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -82,6 +83,11 @@ export default function ResearchChat({ initialMessage, initialContext: _initialC
   }, [input]);
 
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    if (!isSignedIn) {
+      openSignIn();
+      e.target.value = '';
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
     const isImage = file.type.startsWith('image/') || /\.(png|jpg|jpeg|gif|webp)$/i.test(file.name);
@@ -107,6 +113,10 @@ export default function ResearchChat({ initialMessage, initialContext: _initialC
 
   const sendMessage = async (text: string, existingMessages?: ChatMessage[]) => {
     if ((!text.trim() && !attachedFile) || loading) return;
+    if (!isSignedIn) {
+      openSignIn();
+      return;
+    }
 
     const currentMessages = existingMessages ?? messages;
     const userMsg: ChatMessage = {

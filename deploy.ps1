@@ -22,9 +22,30 @@ $REGION       = "us-central1"
 $BACKEND_SVC  = "quantnance-backend"
 $FRONTEND_SVC = "quantnance-frontend"
 
+# Use a unique image tag for each deploy so Cloud Run never resolves a stale
+# floating tag when the latest frontend or backend changes must appear.
+$DEPLOY_TAG = $env:DEPLOY_TAG
+if ([string]::IsNullOrWhiteSpace($DEPLOY_TAG)) {
+    $gitSha = ""
+    try {
+        $gitSha = (git -C $PSScriptRoot rev-parse --short HEAD 2>$null).Trim()
+    }
+    catch {
+        $gitSha = ""
+    }
+
+    $timestamp = Get-Date -Format "yyyyMMddHHmmss"
+    if ([string]::IsNullOrWhiteSpace($gitSha)) {
+        $DEPLOY_TAG = $timestamp
+    }
+    else {
+        $DEPLOY_TAG = "$gitSha-$timestamp"
+    }
+}
+
 # GCR image names
-$BACKEND_IMG  = "gcr.io/$PROJECT_ID/$BACKEND_SVC"
-$FRONTEND_IMG = "gcr.io/$PROJECT_ID/$FRONTEND_SVC"
+$BACKEND_IMG  = "gcr.io/$PROJECT_ID/${BACKEND_SVC}:$DEPLOY_TAG"
+$FRONTEND_IMG = "gcr.io/$PROJECT_ID/${FRONTEND_SVC}:$DEPLOY_TAG"
 
 # ── Local deployment inputs (kept out of git) ──────────────────────────────
 $BACKEND_ENV_FILE = Join-Path $PSScriptRoot "server\cloudrun-env.yaml"

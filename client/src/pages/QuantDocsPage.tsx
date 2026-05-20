@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, useEffect, type ChangeEvent, type DragEvent } from 'react';
 import axios from 'axios';
-import { SignedIn, useAuth } from '@clerk/clerk-react';
+import { SignedIn, useAuth, useClerk } from '@clerk/clerk-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   FileText,
@@ -315,11 +315,13 @@ function QuantDocsSidebar({
 
 export default function QuantDocsPage() {
   const navigate = useNavigate();
-  const { getToken } = useAuth();
+  const { getToken, isSignedIn } = useAuth();
+  const { openSignIn } = useClerk();
   const [searchParams] = useSearchParams();
   const { history, loading: historyLoading, loadingMore, hasMore, pendingDeleteIds, addEntry, deleteEntry, loadMore } = useSearchHistory();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastHistoryKeyRef = useRef('');
+  const signInPromptedRef = useRef(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -333,6 +335,20 @@ export default function QuantDocsPage() {
     if (!result) return [];
     return Object.entries(result.radar_scores).map(([axis, value]) => ({ axis, value }));
   }, [result]);
+
+  useEffect(() => {
+    if (isSignedIn) {
+      signInPromptedRef.current = false;
+      return;
+    }
+
+    if (signInPromptedRef.current) {
+      return;
+    }
+
+    signInPromptedRef.current = true;
+    void openSignIn();
+  }, [isSignedIn, openSignIn]);
 
   useEffect(() => {
     const q = searchParams.get('question');
@@ -369,6 +385,10 @@ export default function QuantDocsPage() {
 
   const handlePick = (file: File | null) => {
     setError(null);
+    if (!isSignedIn) {
+      openSignIn();
+      return;
+    }
     if (!file) return;
     const lower = file.name.toLowerCase();
     const allowed = lower.endsWith('.pdf') || lower.endsWith('.xlsx') || lower.endsWith('.xls') || lower.endsWith('.csv');
@@ -393,6 +413,10 @@ export default function QuantDocsPage() {
 
   const analyzeDocument = async () => {
     if (!selectedFile || loading) return;
+    if (!isSignedIn) {
+      openSignIn();
+      return;
+    }
 
     setLoading(true);
     setError(null);
