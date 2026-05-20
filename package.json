@@ -5,7 +5,7 @@
   "main": "dist/app.js",
   "scripts": {
     "dev": "ts-node src/app.ts",
-    "build": "tsc",
+    "build": "tsc && npm --prefix client run build",
     "start": "node dist/app.js",
     "test": "echo \"No tests specified\" && exit 0"
   },
