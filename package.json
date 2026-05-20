@@ -5,6 +5,7 @@
   "main": "dist/app.js",
   "scripts": {
     "dev": "ts-node src/app.ts",
+    "postinstall": "npm install --prefix client",
     "build": "tsc && npm --prefix client run build",
     "start": "node dist/app.js",
     "test": "echo \"No tests specified\" && exit 0"
