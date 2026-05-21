@@ -3,8 +3,7 @@ import { useAuth, useClerk } from '@clerk/clerk-react';
 import axios from 'axios';
 import { Paperclip, Send, X, FileText, Image as ImageIcon, Sheet } from 'lucide-react';
 import BrandMark from '../shared/BrandMark';
-
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+import { API_URL } from '../../lib/apiBase';
 
 interface ChatMessage {
   role: 'user' | 'assistant';

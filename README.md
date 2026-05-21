@@ -204,6 +204,7 @@ npm install
 Create a `.env` file in `client/`:
 
 ```env
+# Local development only
 VITE_API_URL=http://localhost:8000
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_clerk_publishable_key
 ```
@@ -229,6 +230,43 @@ Run the included deployment script:
 ```
 
 This will build and deploy both containers, wire up environment variables, and configure CORS.
+
+## Deployment (Render)
+
+This repository can run on Render, but Render needs explicit environment wiring because the included deployment automation targets Cloud Run.
+
+### What to set
+
+Keep `VITE_API_URL=http://localhost:8000` only in local development.
+
+For production on Render, choose one of these setups:
+
+1. Frontend as a Render Static Site
+
+  - Set frontend `VITE_API_URL=https://your-backend-service.onrender.com`
+  - Set backend `FRONTEND_URL=https://your-frontend-site.onrender.com`
+  - If you have multiple frontend domains, set backend `FRONTEND_URLS=https://your-frontend-site.onrender.com,https://your-custom-domain.com`
+
+2. Frontend as a Render Web Service using the included Dockerfile
+
+  - Set frontend `BACKEND_URL=https://your-backend-service.onrender.com`
+  - Do not set frontend `VITE_API_URL` in production
+  - Set backend `FRONTEND_URL=https://your-frontend-service.onrender.com`
+
+### Debugging a live Render deploy
+
+Append `?debugApi=1` to any frontend URL to show a small runtime debug badge.
+
+The badge shows:
+
+- the API base the frontend resolved at runtime
+- whether `GET /api/health` is reachable from the browser
+
+Example:
+
+```text
+https://your-frontend-site.onrender.com/?debugApi=1
+```
 
 ### Manual
 
@@ -273,13 +311,14 @@ gcloud run deploy quantnance-frontend \
 | `BAYSE_PUBLIC_KEY` | Yes | Bayse Markets public key |
 | `CLERK_JWKS_URL` | Yes | Clerk JWKS endpoint for JWT verification |
 | `FRONTEND_URL` | No | Frontend origin for CORS (defaults to `*` in dev) |
+| `FRONTEND_URLS` | No | Comma-separated list of allowed frontend origins |
 | `PORT` | No | Server port (default: 8080 on Cloud Run) |
 
 ### Frontend (`client/`)
 
 | Variable | Required | Description |
 |---|---|---|
-| `VITE_API_URL` | Yes | Backend API base URL |
+| `VITE_API_URL` | Local dev yes, prod optional | Backend API base URL. Leave empty in production when the frontend proxies `/api/*` |
 | `VITE_CLERK_PUBLISHABLE_KEY` | Yes | Clerk publishable key |
 | `BACKEND_URL` | Prod only | Backend URL for Nginx reverse proxy (Cloud Run) |
 

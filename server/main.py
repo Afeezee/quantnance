@@ -26,15 +26,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger("quantnance")
 
-app = FastAPI(
-    title="Quantnance API",
-    description="AI-powered investment intelligence platform",
-    version="1.0.0",
-)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+def _split_origins(value: str | None) -> list[str]:
+    if not value:
+        return []
+
+    return [origin.strip().rstrip("/") for origin in value.split(",") if origin.strip()]
+
+
+def _cors_origins() -> list[str]:
+    origins = [
         "http://localhost:5173",
         "http://localhost:5174",
         "http://localhost:5175",
@@ -45,9 +46,29 @@ app.add_middleware(
         "http://127.0.0.1:5175",
         "http://127.0.0.1:5176",
         "http://127.0.0.1:3000",
-        # Production frontend — set FRONTEND_URL env var on the Cloud Run service
-        *([os.getenv("FRONTEND_URL")] if os.getenv("FRONTEND_URL") else []),
-    ],
+    ]
+    origins.extend(_split_origins(os.getenv("FRONTEND_URL")))
+    origins.extend(_split_origins(os.getenv("FRONTEND_URLS")))
+
+    deduped_origins: list[str] = []
+    seen: set[str] = set()
+    for origin in origins:
+        if origin in seen:
+            continue
+        seen.add(origin)
+        deduped_origins.append(origin)
+
+    return deduped_origins
+
+app = FastAPI(
+    title="Quantnance API",
+    description="AI-powered investment intelligence platform",
+    version="1.0.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -104,3 +125,8 @@ async def health_check():
         "service": "Quantnance API",
         "version": "1.0.0",
     }
+
+
+@app.get("/api/health")
+async def api_health_check():
+    return await health_check()

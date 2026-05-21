@@ -25,12 +25,12 @@ import {
 import Background from '../components/layout/Background';
 import Navbar from '../components/layout/Navbar';
 import GlassCard from '../components/shared/GlassCard';
+import ApiDebugBanner from '../components/shared/ApiDebugBanner';
 import LoadingProgress, { type LoadingStep } from '../components/shared/LoadingProgress';
 import ChatInterface from '../components/brief/ChatInterface';
 import BrandMark from '../components/shared/BrandMark';
 import { useSearchHistory, type HistoryEntry } from '../hooks/useSearchHistory';
-
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+import { API_URL } from '../lib/apiBase';
 
 const EXAMPLE_PROMPTS = [
   'Assess this for investment risk',
@@ -462,6 +462,7 @@ export default function QuantDocsPage() {
     <>
       <Background />
       <Navbar onToggleSidebar={() => setSidebarOpen((open) => !open)} />
+      <ApiDebugBanner />
       <SignedIn>
         <QuantDocsSidebar
           open={sidebarOpen}

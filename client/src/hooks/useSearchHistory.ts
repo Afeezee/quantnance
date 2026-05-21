@@ -3,6 +3,7 @@ import { useAuth } from '@clerk/clerk-react';
 import axios from 'axios';
 
 import { authedDelete, authedGet, authedPost } from '../lib/authedAxios';
+import { API_URL } from '../lib/apiBase';
 
 export interface HistoryEntry {
   id: string;
@@ -27,7 +28,6 @@ interface HistoryListResponse {
   has_more: boolean;
 }
 
-const API_URL = import.meta.env.VITE_API_URL ?? '';
 const LEGACY_STORAGE_KEY = 'quantnance-search-history';
 const LEGACY_MIGRATION_PREFIX = 'quantnance-search-history-migrated';
 const PAGE_SIZE = 50;

@@ -5,6 +5,7 @@ import Background from '../components/layout/Background';
 import Navbar from '../components/layout/Navbar';
 import ResearchChat from '../components/research/ResearchChat';
 import BrandMark from '../components/shared/BrandMark';
+import ApiDebugBanner from '../components/shared/ApiDebugBanner';
 import { useSearchHistory, type HistoryEntry } from '../hooks/useSearchHistory';
 import { Clock, Trash2, ArrowRight, X } from 'lucide-react';
 import { useMemo } from 'react';
@@ -185,6 +186,7 @@ export default function ResearchPage() {
     <>
       <Background />
       <Navbar onToggleSidebar={() => setSidebarOpen((s) => !s)} />
+      <ApiDebugBanner />
       <SignedIn>
         <ResearchSidebar
           open={sidebarOpen}

@@ -3,8 +3,7 @@ import { useAuth } from '@clerk/clerk-react';
 import axios from 'axios';
 
 import { authedGet } from '../lib/authedAxios';
-
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+import { API_URL } from '../lib/apiBase';
 
 /* ─── Types ──────────────────────────────────── */
 

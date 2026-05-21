@@ -16,6 +16,7 @@ import ChatInterface from './components/brief/ChatInterface';
 import ComparisonView from './components/brief/ComparisonView';
 import RecommendationView from './components/brief/RecommendationView';
 import BrandMark from './components/shared/BrandMark';
+import ApiDebugBanner from './components/shared/ApiDebugBanner';
 import ResearchPage from './pages/ResearchPage';
 import QuantDocsPage from './pages/QuantDocsPage';
 import { useBrief } from './hooks/useBrief';
@@ -458,6 +459,7 @@ function HomePage() {
     <>
       <Background />
       <Navbar onToggleSidebar={() => setSidebarOpen((s) => !s)} onGoHome={handleGoHome} />
+      <ApiDebugBanner />
       <SignedIn>
         <HistorySidebar
           open={sidebarOpen}

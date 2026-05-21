@@ -3,8 +3,7 @@ import { useAuth } from '@clerk/clerk-react';
 import axios from 'axios';
 import GlassCard from '../shared/GlassCard';
 import BrandMark from '../shared/BrandMark';
-
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+import { API_URL } from '../../lib/apiBase';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
