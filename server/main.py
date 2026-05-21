@@ -8,7 +8,10 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent / ".env")
 
 from fastapi import FastAPI
+from fastapi import HTTPException
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from database import init_database, close_database
 from routes.brief import router as brief_router
 from routes.history import router as history_router
@@ -25,6 +28,18 @@ logging.basicConfig(
     ],
 )
 logger = logging.getLogger("quantnance")
+
+SERVER_DIR = Path(__file__).resolve().parent
+CLIENT_DIST_DIR = Path(os.getenv("CLIENT_DIST_DIR", SERVER_DIR.parent / "client" / "dist"))
+CLIENT_INDEX_FILE = CLIENT_DIST_DIR / "index.html"
+SPA_EXCLUDED_PATHS = {
+    "api",
+    "docs",
+    "docs/oauth2-redirect",
+    "openapi.json",
+    "redoc",
+    "health",
+}
 
 
 def _split_origins(value: str | None) -> list[str]:
@@ -60,6 +75,10 @@ def _cors_origins() -> list[str]:
 
     return deduped_origins
 
+
+def _clerk_publishable_key() -> str | None:
+    return os.getenv("CLERK_PUBLISHABLE_KEY") or os.getenv("VITE_CLERK_PUBLISHABLE_KEY")
+
 app = FastAPI(
     title="Quantnance API",
     description="AI-powered investment intelligence platform",
@@ -76,6 +95,28 @@ app.add_middleware(
 
 app.include_router(brief_router, prefix="/api")
 app.include_router(history_router, prefix="/api")
+
+if CLIENT_DIST_DIR.exists():
+    assets_dir = CLIENT_DIST_DIR / "assets"
+    brand_dir = CLIENT_DIST_DIR / "brand"
+    favicon_file = CLIENT_DIST_DIR / "favicon.svg"
+    manifest_file = CLIENT_DIST_DIR / "site.webmanifest"
+
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    if brand_dir.exists():
+        app.mount("/brand", StaticFiles(directory=brand_dir), name="brand")
+
+    if favicon_file.exists():
+        @app.get("/favicon.svg", include_in_schema=False)
+        async def favicon():
+            return FileResponse(favicon_file)
+
+    if manifest_file.exists():
+        @app.get("/site.webmanifest", include_in_schema=False)
+        async def site_webmanifest():
+            return FileResponse(manifest_file)
 
 
 @app.on_event("startup")
@@ -110,6 +151,9 @@ async def shutdown_event():
 
 @app.get("/")
 async def root():
+    if CLIENT_INDEX_FILE.exists():
+        return FileResponse(CLIENT_INDEX_FILE)
+
     return {
         "message": "Quantnance API is running",
         "docs": "/docs",
@@ -130,3 +174,18 @@ async def health_check():
 @app.get("/api/health")
 async def api_health_check():
     return await health_check()
+
+
+@app.get("/api/app-config")
+async def app_config():
+    return {
+        "clerk_publishable_key": _clerk_publishable_key(),
+    }
+
+
+if CLIENT_INDEX_FILE.exists():
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def spa_entry(full_path: str):
+        if full_path in SPA_EXCLUDED_PATHS or full_path.startswith("api/") or full_path.startswith("docs/"):
+            raise HTTPException(status_code=404, detail="Not found")
+        return FileResponse(CLIENT_INDEX_FILE)

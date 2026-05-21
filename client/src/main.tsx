@@ -5,21 +5,28 @@ import { ClerkProvider } from '@clerk/clerk-react'
 import './index.css'
 import App from './App.tsx'
 import { ThemeProvider } from './contexts/ThemeContext.tsx'
+import { loadAppRuntimeConfig } from './lib/runtimeConfig.ts'
 
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+async function bootstrap() {
+  const { clerkPublishableKey } = await loadAppRuntimeConfig()
 
-if (!PUBLISHABLE_KEY) {
-  throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env')
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <ClerkProvider publishableKey={clerkPublishableKey}>
+        <ThemeProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </ThemeProvider>
+      </ClerkProvider>
+    </StrictMode>,
+  )
 }
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
-      <ThemeProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </ThemeProvider>
-    </ClerkProvider>
-  </StrictMode>,
-)
+void bootstrap().catch((error) => {
+  const root = document.getElementById('root')
+  if (root) {
+    root.textContent = 'Configuration error: unable to start Quantnance.'
+  }
+  console.error(error)
+})

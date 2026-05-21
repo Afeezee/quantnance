@@ -233,25 +233,25 @@ This will build and deploy both containers, wire up environment variables, and c
 
 ## Deployment (Render)
 
-This repository can run on Render, but Render needs explicit environment wiring because the included deployment automation targets Cloud Run.
+This repository is now structured for a single Render web service.
+
+One public URL serves both the frontend and the backend:
+
+- Frontend: `https://your-service.onrender.com/`
+- API: `https://your-service.onrender.com/api/...`
 
 ### What to set
 
 Keep `VITE_API_URL=http://localhost:8000` only in local development.
 
-For production on Render, choose one of these setups:
+For production on Render:
 
-1. Frontend as a Render Static Site
-
-  - Set frontend `VITE_API_URL=https://your-backend-service.onrender.com`
-  - Set backend `FRONTEND_URL=https://your-frontend-site.onrender.com`
-  - If you have multiple frontend domains, set backend `FRONTEND_URLS=https://your-frontend-site.onrender.com,https://your-custom-domain.com`
-
-2. Frontend as a Render Web Service using the included Dockerfile
-
-  - Set frontend `BACKEND_URL=https://your-backend-service.onrender.com`
-  - Do not set frontend `VITE_API_URL` in production
-  - Set backend `FRONTEND_URL=https://your-frontend-service.onrender.com`
+- Deploy the root of the repo as one Docker web service
+- Use the root [Dockerfile](Dockerfile)
+- Use the included [render.yaml](render.yaml) if you want a Render Blueprint
+- Do not set `VITE_API_URL` in production
+- Do not set `BACKEND_URL` in production
+- Set `CLERK_PUBLISHABLE_KEY` on the Render service
 
 ### Debugging a live Render deploy
 
@@ -265,37 +265,39 @@ The badge shows:
 Example:
 
 ```text
-https://your-frontend-site.onrender.com/?debugApi=1
+https://your-service.onrender.com/?debugApi=1
 ```
+
+### Required Render environment variables
+
+- `CLERK_PUBLISHABLE_KEY`
+- `CLERK_JWKS_URL`
+- `GROQ_API_KEY`
+- `NEWS_API_KEY`
+- `BAYSE_PUBLIC_KEY`
+- `DATABASE_URL`
+
+### Notes
+
+- The React app is built into the container during the Docker build.
+- FastAPI serves the built SPA at `/` and the API at `/api/*`.
+- The frontend loads the Clerk publishable key from `/api/app-config` at runtime, so production does not depend on a Vite build-time secret.
 
 ### Manual
 
-**Backend:**
+Build and run the root container locally:
 
 ```bash
-cd server
-gcloud run deploy quantnance-api \
-  --source . \
-  --region us-central1 \
-  --platform managed \
-  --allow-unauthenticated \
-  --memory 512Mi \
-  --timeout 120 \
-  --set-env-vars "GROQ_API_KEY=...,NEWS_API_KEY=...,BAYSE_PUBLIC_KEY=...,CLERK_JWKS_URL=..."
-```
-
-**Frontend:**
-
-```bash
-cd client
-gcloud run deploy quantnance-frontend \
-  --source . \
-  --region us-central1 \
-  --platform managed \
-  --allow-unauthenticated \
-  --memory 512Mi \
-  --timeout 120 \
-  --set-env-vars "BACKEND_URL=https://your-backend-url.run.app"
+docker build -t quantnance .
+docker run -p 10000:10000 \
+  -e PORT=10000 \
+  -e CLERK_PUBLISHABLE_KEY=... \
+  -e CLERK_JWKS_URL=... \
+  -e GROQ_API_KEY=... \
+  -e NEWS_API_KEY=... \
+  -e BAYSE_PUBLIC_KEY=... \
+  -e DATABASE_URL=... \
+  quantnance
 ```
 
 ---
@@ -310,17 +312,17 @@ gcloud run deploy quantnance-frontend \
 | `NEWS_API_KEY` | Yes | NewsAPI.org API key |
 | `BAYSE_PUBLIC_KEY` | Yes | Bayse Markets public key |
 | `CLERK_JWKS_URL` | Yes | Clerk JWKS endpoint for JWT verification |
-| `FRONTEND_URL` | No | Frontend origin for CORS (defaults to `*` in dev) |
-| `FRONTEND_URLS` | No | Comma-separated list of allowed frontend origins |
+| `CLERK_PUBLISHABLE_KEY` | Yes | Clerk publishable key returned to the SPA via `/api/app-config` |
+| `FRONTEND_URL` | No | Extra frontend origin for cross-origin deployments or local split setups |
+| `FRONTEND_URLS` | No | Comma-separated list of extra allowed frontend origins |
 | `PORT` | No | Server port (default: 8080 on Cloud Run) |
 
 ### Frontend (`client/`)
 
 | Variable | Required | Description |
 |---|---|---|
-| `VITE_API_URL` | Local dev yes, prod optional | Backend API base URL. Leave empty in production when the frontend proxies `/api/*` |
-| `VITE_CLERK_PUBLISHABLE_KEY` | Yes | Clerk publishable key |
-| `BACKEND_URL` | Prod only | Backend URL for Nginx reverse proxy (Cloud Run) |
+| `VITE_API_URL` | Local dev only | Local backend API base URL |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Local dev only | Local Clerk publishable key used by Vite dev |
 
 ---
 
