@@ -4,6 +4,8 @@
 
 Quantnance lets users search for any stock or crypto in natural language, receive AI-generated investment briefs, compare assets side-by-side, and get personalized recommendations — all backed by real-time market data, news sentiment analysis, and prediction market crowd intelligence.
 
+www.quantnance.com
+
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ---
