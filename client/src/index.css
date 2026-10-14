@@ -231,6 +231,41 @@ h1, h2, h3, h4, h5, h6 {
   .container {
     padding: 0 16px;
   }
+  /* Hide the ticker marquee on narrow screens — leaves room for the brand
+     and the sidebar toggle, both of which matter more on mobile. */
+  .nav-ticker {
+    display: none !important;
+  }
+}
+
+/* ─── Back button ────────────────────────────── */
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card-bg, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 12px;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.back-button:hover {
+  color: var(--accent-blue);
+  border-color: rgba(59, 130, 246, 0.4);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+/* ─── Sidebar feature item hover ─────────────── */
+
+.sidebar-feature-item:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
 }
 
 /* ─── Scrollbar ──────────────────────────────── */

@@ -9,6 +9,23 @@ interface MarkdownMessageProps {
   style?: CSSProperties;
 }
 
+// remark-math only recognizes $…$ and $$…$$ delimiters, but GPT-OSS and
+// most LLMs often emit the alternate LaTeX escapes \(…\) and \[…\].
+// Normalize them before parsing so KaTeX actually gets a chance to render.
+// We skip anything inside fenced code blocks so illustrative snippets stay
+// untouched.
+function normalizeMathDelimiters(src: string): string {
+  const parts = src.split(/(```[\s\S]*?```)/g);
+  return parts
+    .map((chunk, i) => {
+      if (i % 2 === 1) return chunk; // inside a fenced code block
+      return chunk
+        .replace(/\\\[([\s\S]+?)\\\]/g, (_m, body) => `\n$$${body.trim()}$$\n`)
+        .replace(/\\\(([\s\S]+?)\\\)/g, (_m, body) => `$${body.trim()}$`);
+    })
+    .join('');
+}
+
 // Renders assistant chat replies with GitHub-flavored Markdown + LaTeX math
 // via KaTeX. Inline math uses $…$ and block math uses $$…$$ (set by
 // remark-math). Styling leans on the existing CSS variables so it inherits
@@ -28,6 +45,7 @@ export default function MarkdownMessage({ children, style }: MarkdownMessageProp
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
+        skipHtml
         components={{
           p: ({ children: c }) => <p style={{ margin: '0 0 10px 0' }}>{c}</p>,
           ul: ({ children: c }) => (
@@ -153,7 +171,7 @@ export default function MarkdownMessage({ children, style }: MarkdownMessageProp
           ),
         }}
       >
-        {children}
+        {normalizeMathDelimiters(children)}
       </ReactMarkdown>
     </div>
   );

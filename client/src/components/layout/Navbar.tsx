@@ -129,6 +129,7 @@ export default function Navbar({ onToggleSidebar, onGoHome }: NavbarProps) {
 
       {/* Ticker marquee */}
       <div
+        className="nav-ticker"
         style={{
           flex: 1,
           overflow: 'hidden',
