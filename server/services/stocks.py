@@ -75,25 +75,82 @@ def _safe_float(val, default=0.0) -> float:
         return default
 
 
+# Filler words we strip out of a natural-language prompt before handing the
+# remainder to Yahoo Finance search. Keeping this list conservative — Yahoo
+# tolerates extra words well, but phrases like "analyze X for me" sometimes
+# ranked unrelated matches first.
+_PROMPT_FILLER_WORDS = {
+    "a", "an", "the", "for", "me", "please", "pls", "can", "you", "could",
+    "would", "give", "show", "tell", "about", "on", "of", "to", "stock",
+    "stocks", "share", "shares", "ticker", "price", "quote", "analysis",
+    "analyze", "analyse", "analyzing", "analysing", "research", "look",
+    "up", "info", "information", "data", "today", "now", "please.",
+}
+
+
+def _clean_search_term(query: str) -> str:
+    """Strip common filler words from a natural-language prompt without
+    touching ticker-like tokens (uppercase, contains a dot)."""
+    stripped = query.strip().strip("?.!,")
+    tokens = stripped.split()
+    kept: list[str] = []
+    for tok in tokens:
+        bare = tok.lower().strip("?.!,")
+        if bare in _PROMPT_FILLER_WORDS:
+            continue
+        kept.append(tok)
+    cleaned = " ".join(kept).strip()
+    return cleaned or stripped
+
+
+def _rank_search_results(results: list, search_term: str) -> list:
+    """
+    Rerank Yahoo results so the obvious equity match beats sector peers.
+    Scoring, highest first:
+      +100 exact ticker match
+      +50  EQUITY type (vs ETF/MUTUALFUND/…)
+      +40  search term appears in the name
+      +20  name starts with the search term
+      +5   US exchange (NYSE / Nasdaq) — common for ambiguous terms
+    """
+    term = search_term.strip().lower()
+    term_upper = term.upper()
+
+    def score(r: dict) -> int:
+        s = 0
+        sym = (r.get("symbol") or "").upper()
+        name = (r.get("name") or "").lower()
+        region = (r.get("region") or "").lower()
+        qtype = (r.get("type") or "").upper()
+        if sym == term_upper:
+            s += 100
+        if qtype == "EQUITY":
+            s += 50
+        if term and term in name:
+            s += 40
+        if term and name.startswith(term):
+            s += 20
+        if any(ex in region for ex in ("nasdaq", "nyse")):
+            s += 5
+        return s
+
+    return sorted(results, key=score, reverse=True)
+
+
 async def search_ticker(query: str) -> list:
     """
     Resolve a natural-language prompt or ticker to Yahoo Finance search results.
-    Uses AI to extract the stock symbol/company name from the prompt first.
+    Strategy: strip filler words from the prompt, let Yahoo's own search handle
+    the fuzzy match, then rerank so the obvious equity match surfaces first.
     """
-    from services import ai_analysis
-
-    stripped = query.strip()
-    # Short queries (1-2 words) are likely already a ticker/company — skip AI
-    if len(stripped.split()) <= 2:
-        search_term = stripped
-    else:
-        search_term = await ai_analysis.extract_stock_symbol(stripped)
+    search_term = _clean_search_term(query)
 
     cache_key = f"search:{search_term.lower()}"
     cached = _cache_get(cache_key, 3600)
     if cached is not None and len(cached) > 0:
         return cached
     results = await _search_yahoo_finance(search_term)
+    results = _rank_search_results(results, search_term)
     # Only cache non-empty results so transient failures don't stick
     if results:
         _cache_set(cache_key, results)
