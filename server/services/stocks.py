@@ -85,6 +85,8 @@ _PROMPT_FILLER_WORDS = {
     "stocks", "share", "shares", "ticker", "price", "quote", "analysis",
     "analyze", "analyse", "analyzing", "analysing", "research", "look",
     "up", "info", "information", "data", "today", "now", "please.",
+    "what", "is", "are", "whats", "what's", "how", "doing", "does",
+    "any", "there", "any", "do", "did", "has",
 }
 
 
