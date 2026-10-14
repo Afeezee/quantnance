@@ -16,15 +16,17 @@ from database import init_database, close_database
 from routes.brief import router as brief_router
 from routes.history import router as history_router
 
+# On serverless/managed runtimes (Cloud Run sets K_SERVICE, Vercel sets VERCEL),
+# the filesystem is read-only outside /tmp and stdout is already captured by the
+# platform's logging — only attach a FileHandler during local development.
+_IS_SERVERLESS = bool(os.getenv("K_SERVICE") or os.getenv("VERCEL"))
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     handlers=[
         logging.StreamHandler(),
-        # On Cloud Run (K_SERVICE is set), stdout is captured by Cloud Logging —
-        # no need to write a file. Write the file only during local development.
         *([logging.FileHandler(Path(__file__).resolve().parent / "server.log", mode="w", encoding="utf-8")]
-          if not os.getenv("K_SERVICE") else []),
+          if not _IS_SERVERLESS else []),
     ],
 )
 logger = logging.getLogger("quantnance")
@@ -61,6 +63,10 @@ def _cors_origins() -> list[str]:
         "http://127.0.0.1:5175",
         "http://127.0.0.1:5176",
         "http://127.0.0.1:3000",
+        # TODO: replace with the real Vercel frontend URL after the first deploy
+        # (e.g. https://quantnance-xxxx.vercel.app and the custom domain, if any).
+        # Can also be supplied at runtime via FRONTEND_URL / FRONTEND_URLS env vars.
+        "https://quantnance.vercel.app",
     ]
     origins.extend(_split_origins(os.getenv("FRONTEND_URL")))
     origins.extend(_split_origins(os.getenv("FRONTEND_URLS")))

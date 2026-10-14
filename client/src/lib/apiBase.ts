@@ -24,3 +24,16 @@ export function getApiBaseUrl() {
 }
 
 export const API_URL = getApiBaseUrl();
+
+// In a production build, VITE_API_URL MUST be set to the deployed backend's
+// origin (e.g. https://quantnance-api.vercel.app). We refuse to silently fall
+// back to localhost in that case — surface a loud console error at startup so
+// a missing env var is obvious instead of showing broken requests downstream.
+if (import.meta.env.PROD && typeof window !== 'undefined' && !API_URL) {
+  // eslint-disable-next-line no-console
+  console.error(
+    '[Quantnance] VITE_API_URL is not configured for this production build. ' +
+      'All API calls will fail. Set VITE_API_URL in the Vercel project settings ' +
+      'to the deployed backend URL and redeploy.',
+  );
+}

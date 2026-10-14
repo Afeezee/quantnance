@@ -16,10 +16,21 @@ YF_HEADERS = {
     "Accept-Language": "en-US,en;q=0.9",
 }
 
+# In-memory cache for Yahoo Finance quotes / overviews / history.
+# On Vercel's Fluid Compute runtime this dict is per-instance and may be wiped
+# whenever a new function instance is spun up — treat it strictly as a
+# best-effort speed optimization, never as a source of truth.
 _cache: dict[str, dict] = {}
 
+# Disk-backed secondary cache. On a serverless host (Vercel) the project
+# filesystem is read-only, so the mkdir and subsequent writes will fail
+# silently (both are wrapped in try/except below). Local dev still benefits
+# from the disk layer; serverless gracefully falls back to the in-memory one.
 CACHE_DIR = pathlib.Path(__file__).resolve().parent.parent / "cache"
-CACHE_DIR.mkdir(exist_ok=True)
+try:
+    CACHE_DIR.mkdir(exist_ok=True)
+except OSError:
+    pass
 
 
 def _cache_get(key: str, ttl: int):
@@ -92,6 +103,8 @@ async def search_ticker(query: str) -> list:
 async def _search_yahoo_finance(keyword: str) -> list:
     log = logging.getLogger(__name__)
     try:
+        # 10s per-request timeout keeps a slow Yahoo endpoint from eating the
+        # whole function budget on Vercel.
         async with httpx.AsyncClient(timeout=10, headers=YF_HEADERS) as client:
             resp = await client.get(
                 f"{YF_QUERY1}/v1/finance/search",
@@ -140,7 +153,7 @@ async def get_quote(symbol: str) -> dict:
 async def _get_quote_yahoo(symbol: str) -> dict | None:
     import logging
     try:
-        async with httpx.AsyncClient(timeout=12, headers=YF_HEADERS) as client:
+        async with httpx.AsyncClient(timeout=10, headers=YF_HEADERS) as client:
             resp = await client.get(
                 f"{YF_QUERY1}/v8/finance/chart/{symbol}",
                 params={"interval": "1d", "range": "1d"},
@@ -209,7 +222,7 @@ async def _get_overview_yahoo(symbol: str) -> dict | None:
 
     # --- Primary: chart meta (reliable, no auth needed) ---
     try:
-        async with httpx.AsyncClient(timeout=12, headers=YF_HEADERS) as client:
+        async with httpx.AsyncClient(timeout=10, headers=YF_HEADERS) as client:
             resp = await client.get(
                 f"{YF_QUERY1}/v8/finance/chart/{symbol}",
                 params={"interval": "1d", "range": "5d"},
@@ -255,7 +268,7 @@ async def _get_overview_yahoo(symbol: str) -> dict | None:
         }
 
         def _fetch_with_crumb():
-            with httpx.Client(headers=browser_headers, follow_redirects=True, timeout=15) as client:
+            with httpx.Client(headers=browser_headers, follow_redirects=True, timeout=10) as client:
                 # Get cookies from Yahoo Finance
                 page_resp = client.get(f"https://finance.yahoo.com/quote/{symbol}/")
                 # Get crumb using those cookies
@@ -329,7 +342,7 @@ async def _get_history_yahoo(symbol: str, interval: str = "daily") -> list | Non
     yf_interval = "1wk" if interval == "weekly" else "1d"
     yf_range = "1y" if interval == "weekly" else "6mo"
     try:
-        async with httpx.AsyncClient(timeout=15, headers=YF_HEADERS) as client:
+        async with httpx.AsyncClient(timeout=10, headers=YF_HEADERS) as client:
             resp = await client.get(
                 f"{YF_QUERY1}/v8/finance/chart/{symbol}",
                 params={"interval": yf_interval, "range": yf_range},

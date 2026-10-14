@@ -16,7 +16,11 @@ CLERK_JWKS_URL = os.getenv("CLERK_JWKS_URL", "")
 
 _bearer_scheme = HTTPBearer(auto_error=True)
 
-# Simple in-memory JWKS cache with TTL
+# Simple in-memory JWKS cache with TTL.
+# On Vercel's Fluid Compute model this cache lives for the lifetime of a single
+# warm instance and will be refetched on cold starts / scale-out. That's fine:
+# it's a best-effort latency optimization, correctness still comes from the
+# live JWKS fetch when the cache misses or an unknown kid is seen.
 _jwks_data: dict | None = None
 _jwks_fetched_at: float = 0.0
 _JWKS_TTL = 3600  # 1 hour

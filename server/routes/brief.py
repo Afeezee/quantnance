@@ -15,8 +15,35 @@ router = APIRouter()
 log = logging.getLogger(__name__)
 
 # Brief-level cache: symbol -> {data, ts}
+# NOTE: On Vercel's Fluid Compute / serverless runtime, this process-local dict
+# lives only for the lifetime of a single warm instance and is wiped whenever
+# the function scales to a new instance. Treat it as a best-effort latency
+# optimization only — never rely on it for correctness.
 _brief_cache: dict[str, dict] = {}
 _BRIEF_TTL = 1800  # 30 minutes
+
+# Per-upstream timeout for the parallel data-fetch step. Keep this well under
+# the Vercel function duration limit so a single hung upstream (Yahoo, NewsAPI,
+# Bayse) degrades gracefully to partial data instead of timing out the whole
+# response. Each service also has its own httpx timeout; this is the outer bound.
+_FETCH_TIMEOUT_SECONDS = 12.0
+
+
+async def _parallel_fetch(*coros):
+    """
+    Run data-fetch coroutines in parallel with an outer per-call timeout so one
+    slow upstream can't blow the whole function duration. Each slot resolves to
+    its value, or None if that call timed out, raised, or was cancelled —
+    callers downstream already treat None as "upstream unavailable".
+    """
+    async def _bounded(coro):
+        try:
+            return await asyncio.wait_for(coro, timeout=_FETCH_TIMEOUT_SECONDS)
+        except Exception as exc:  # includes asyncio.TimeoutError
+            log.warning("Parallel fetch slot failed: %s", exc)
+            return None
+
+    return await asyncio.gather(*(_bounded(c) for c in coros))
 
 
 def _get_cached_brief(symbol: str):
@@ -84,27 +111,17 @@ async def analyze(
             cached["resolved_match"] = match
             return cached
 
-    # 3. Fetch all data in parallel
-    quote_data = None
-    overview_data = None
-    price_history_data = None
-    news_articles = None
-
-    try:
-        results = await asyncio.gather(
-            stocks.get_quote(symbol),
-            stocks.get_company_overview(symbol),
-            stocks.get_price_history(symbol),
-            news.get_financial_news(f"{match_name} stock"),
-            return_exceptions=True,
-        )
-
-        quote_data = results[0] if not isinstance(results[0], Exception) else None
-        overview_data = results[1] if not isinstance(results[1], Exception) else None
-        price_history_data = results[2] if not isinstance(results[2], Exception) else None
-        news_articles = results[3] if not isinstance(results[3], Exception) else None
-    except Exception:
-        pass
+    # 3. Fetch all data in parallel.
+    # Each coroutine is wrapped in asyncio.wait_for so a single slow upstream
+    # (Yahoo, NewsAPI, …) can only consume at most _FETCH_TIMEOUT_SECONDS and
+    # the brief still returns with partial data instead of hitting the Vercel
+    # function duration ceiling.
+    quote_data, overview_data, price_history_data, news_articles = await _parallel_fetch(
+        stocks.get_quote(symbol),
+        stocks.get_company_overview(symbol),
+        stocks.get_price_history(symbol),
+        news.get_financial_news(f"{match_name} stock"),
+    )
 
     company_name = (overview_data or {}).get("name", "") or match_name
     sector = (overview_data or {}).get("sector", "")
@@ -189,26 +206,14 @@ async def get_brief(
         cached = _get_cached_brief(symbol)
         if cached:
             return cached
-    quote_data = None
-    overview_data = None
-    price_history_data = None
-    news_articles = None
 
-    try:
-        results = await asyncio.gather(
-            stocks.get_quote(symbol),
-            stocks.get_company_overview(symbol),
-            stocks.get_price_history(symbol),
-            news.get_financial_news(f"{symbol} stock"),
-            return_exceptions=True,
-        )
-
-        quote_data = results[0] if not isinstance(results[0], Exception) else None
-        overview_data = results[1] if not isinstance(results[1], Exception) else None
-        price_history_data = results[2] if not isinstance(results[2], Exception) else None
-        news_articles = results[3] if not isinstance(results[3], Exception) else None
-    except Exception:
-        pass
+    # See /api/analyze above — same timeout-bounded parallel fetch.
+    quote_data, overview_data, price_history_data, news_articles = await _parallel_fetch(
+        stocks.get_quote(symbol),
+        stocks.get_company_overview(symbol),
+        stocks.get_price_history(symbol),
+        news.get_financial_news(f"{symbol} stock"),
+    )
 
     company_name = (overview_data or {}).get("name", symbol)
     sector = (overview_data or {}).get("sector", "")

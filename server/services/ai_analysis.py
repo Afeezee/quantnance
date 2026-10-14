@@ -8,9 +8,19 @@ import httpx
 logger = logging.getLogger(__name__)
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-MODEL = "llama-3.3-70b-versatile"
+# Groq's current flagship open-weight production model (as of 2026-10):
+# OpenAI's GPT-OSS 120B MoE, 131k context, 65k max output.
+# Groq retired llama-3.1-8b-instant on 2026-08-16; the Llama 3.3 line's
+# production status is uncertain, so GPT-OSS 120B is the safest "newest and
+# supported" pick. If you want speed over quality, swap to "openai/gpt-oss-20b".
+MODEL = "openai/gpt-oss-120b"
 
-# Persistent httpx client for connection pooling (reduces latency)
+# Persistent httpx client for connection pooling (reduces latency).
+# On Vercel's Fluid Compute model this module-level client is reused across
+# invocations WITHIN a single warm instance only — a cold start or scale-out
+# will recreate it, which is fine because httpx.Client has no state we rely on.
+# The 30s timeout here is Groq-specific (LLM generations are longer than data
+# APIs); callers must still assume no shared state between invocations.
 _http_client: httpx.Client | None = None
 
 

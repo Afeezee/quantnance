@@ -5,6 +5,9 @@ from typing import Optional
 
 NEWS_BASE_URL = "https://newsapi.org/v2"
 
+# In-memory cache. On Vercel's Fluid Compute model this may be wiped between
+# invocations when the function scales to a new instance — treat it as a
+# best-effort speed optimization, never as a source of truth.
 _cache: dict[str, dict] = {}
 
 
@@ -27,7 +30,9 @@ async def get_financial_news(query: str, page_size: int = 8) -> list:
 
     api_key = os.getenv("NEWS_API_KEY", "")
 
-    async with httpx.AsyncClient(timeout=15) as client:
+    # 10s per-request timeout — see routes/brief.py for how the outer parallel
+    # fetch bounds total time on Vercel.
+    async with httpx.AsyncClient(timeout=10) as client:
         resp = await client.get(
             f"{NEWS_BASE_URL}/everything",
             params={

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "_comment": "Minimal override of Vercel's zero-config Python detection. Reason: the /api/brief and /api/analyze endpoints fan out to several external APIs (Yahoo Finance, NewsAPI, Bayse) in parallel and then make sequential Groq LLM calls. The default function duration (10s on Hobby / 15s on Pro) can be exceeded on a cold path, so we raise maxDuration to 60s. Everything else — FastAPI detection, Python runtime pinning via .python-version, dependency install from requirements.txt — is left to Vercel's zero-config behavior.",
+  "functions": {
+    "main.py": {
+      "maxDuration": 60
+    }
+  }
+}

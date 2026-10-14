@@ -9,6 +9,9 @@ logger = logging.getLogger(__name__)
 BAYSE_BASE_URL = "https://relay.bayse.markets"
 BAYSE_PUBLIC_KEY = os.getenv("BAYSE_PUBLIC_KEY", "")
 
+# In-memory cache for Bayse events/tickers. On Vercel's Fluid Compute model
+# this is per-instance and may be dropped on cold starts or scale-out — only
+# useful as a best-effort speed optimization, never for correctness.
 _cache: dict[str, dict] = {}
 
 # ── Crypto symbols map: symbol → search keywords for Bayse ──
@@ -68,7 +71,7 @@ async def get_events(
     if category:
         params["category"] = category
 
-    async with httpx.AsyncClient(timeout=15) as client:
+    async with httpx.AsyncClient(timeout=10) as client:
         resp = await client.get(
             f"{BAYSE_BASE_URL}/v1/pm/events", headers=_headers(), params=params
         )
@@ -85,7 +88,7 @@ async def get_price_history(event_id: str, interval: str = "1h") -> dict:
     if cached is not None:
         return cached
 
-    async with httpx.AsyncClient(timeout=15) as client:
+    async with httpx.AsyncClient(timeout=10) as client:
         resp = await client.get(
             f"{BAYSE_BASE_URL}/v1/pm/events/{event_id}/price-history",
             headers=_headers(),
@@ -104,7 +107,7 @@ async def get_market_ticker(market_id: str) -> dict:
     if cached is not None:
         return cached
 
-    async with httpx.AsyncClient(timeout=15) as client:
+    async with httpx.AsyncClient(timeout=10) as client:
         resp = await client.get(
             f"{BAYSE_BASE_URL}/v1/pm/markets/{market_id}/ticker",
             headers=_headers(),
