@@ -3,6 +3,7 @@ import { useAuth, useClerk } from '@clerk/clerk-react';
 import axios from 'axios';
 import { Paperclip, Send, X, FileText, Image as ImageIcon, Sheet } from 'lucide-react';
 import BrandMark from '../shared/BrandMark';
+import MarkdownMessage from '../shared/MarkdownMessage';
 import { API_URL } from '../../lib/apiBase';
 
 interface ChatMessage {
@@ -362,17 +363,21 @@ export default function ResearchChat({ initialMessage, initialContext: _initialC
                   />
                 </div>
               )}
-              <div
-                style={{
-                  fontSize: 14,
-                  lineHeight: 1.7,
-                  color: 'var(--text-primary)',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                }}
-              >
-                {m.content}
-              </div>
+              {m.role === 'assistant' ? (
+                <MarkdownMessage>{m.content}</MarkdownMessage>
+              ) : (
+                <div
+                  style={{
+                    fontSize: 14,
+                    lineHeight: 1.7,
+                    color: 'var(--text-primary)',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {m.content}
+                </div>
+              )}
             </div>
           </div>
         ))}

@@ -3,6 +3,7 @@ import { useAuth } from '@clerk/clerk-react';
 import axios from 'axios';
 import GlassCard from '../shared/GlassCard';
 import BrandMark from '../shared/BrandMark';
+import MarkdownMessage from '../shared/MarkdownMessage';
 import { API_URL } from '../../lib/apiBase';
 
 interface ChatMessage {
@@ -170,12 +171,18 @@ export default function ChatInterface({
                 borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                 background: m.role === 'user' ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.04)',
                 border: `1px solid ${m.role === 'user' ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.06)'}`,
-                fontSize: 13,
-                lineHeight: 1.6,
                 color: 'var(--text-primary)',
               }}
             >
-              {m.content}
+              {m.role === 'assistant' ? (
+                <MarkdownMessage style={{ fontSize: 13, lineHeight: 1.6 }}>
+                  {m.content}
+                </MarkdownMessage>
+              ) : (
+                <div style={{ fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  {m.content}
+                </div>
+              )}
             </div>
           </div>
         ))}

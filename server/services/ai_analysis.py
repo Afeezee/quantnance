@@ -530,7 +530,14 @@ async def answer_question(symbol: str, brief_context: dict,
         f"recommendations. If the user asks about something not covered "
         f"in the brief data, say 'That information isn't available in the "
         f"current Yahoo Finance data' rather than using general knowledge. "
-        f"Keep answers under 150 words unless more detail is needed."
+        f"Keep answers under 150 words unless more detail is needed.\n\n"
+        f"Formatting: respond in GitHub-flavored Markdown. Use bullet lists, "
+        f"**bold** for key figures, and short tables when comparing values. "
+        f"For any mathematical expression or formula (ratios, growth rates, "
+        f"CAGR, Sharpe, P/E breakdowns, etc.) use LaTeX delimited by $…$ for "
+        f"inline math and $$…$$ for display math — e.g. "
+        f"$\\text{{P/E}} = \\dfrac{{\\text{{Price}}}}{{\\text{{EPS}}}}$. "
+        f"Never wrap math in code fences."
     )
 
     messages = [{"role": "system", "content": system_prompt}]
@@ -1113,7 +1120,11 @@ async def quantdocs_chat(user_message: str, conversation_history: list, document
         "Do not invent values not present in the provided context. "
         "If information is missing, clearly say it is not present in the uploaded document. "
         "Keep responses concise, clear, and investor-grade. "
-        "Do not provide explicit buy/sell instructions."
+        "Do not provide explicit buy/sell instructions.\n\n"
+        "Formatting: respond in GitHub-flavored Markdown. Use bullet lists, "
+        "**bold** for key figures, and short tables for comparisons. For "
+        "mathematical expressions and formulas use LaTeX delimited by $…$ for "
+        "inline math and $$…$$ for display math. Never wrap math in code fences."
     )
 
     messages = [{"role": "system", "content": system_prompt}]
@@ -1186,7 +1197,13 @@ async def research_chat(user_message: str, conversation_history: list,
         "- When analysing uploaded documents or images, reference specific "
         "numbers and details from the content.\n"
         "- Keep responses concise — aim for 150-250 words.\n"
-        "- If you don't know something, say so honestly."
+        "- If you don't know something, say so honestly.\n"
+        "- Formatting: respond in GitHub-flavored Markdown. Use bullet lists, "
+        "**bold** for key figures, and short tables when comparing values. "
+        "For mathematical expressions, financial formulas, and ratios use "
+        "LaTeX delimited by $…$ for inline math and $$…$$ for display math "
+        "(e.g. $\\text{Sharpe} = \\dfrac{R_p - R_f}{\\sigma_p}$). "
+        "Never wrap math in code fences."
     )
 
     messages = [{"role": "system", "content": system_prompt}]
